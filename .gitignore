@@ -1,0 +1,6 @@
+bootrom.bin
+hwdocs/*
+roms/*
+*.o
+*.txt
+yagbe
