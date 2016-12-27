@@ -172,17 +172,18 @@ void GBLCD::tick(long long hz){
 void GBLCD::performHBlank(){
     
     if(getLY() <= 144){
+		
+		//Fire event if enabled and coincidence is hit
+        if((getSTAT() & STAT_COINCIDENCE_INTERRUPT) && (getLY() == getLYC())){
+            uint8_t interruptFlags = m_gbmemory->direct_read(ADDRESS_IF);
+            m_gbmemory->write(ADDRESS_IF, interruptFlags | INTERRUPT_FLAG_STAT);
+        }
+		
         //Render line
         renderLine();
         
         //Set line for next blank
         incrementLY();
-        
-        //Fire event if enabled and coincidence is hit
-        if((getSTAT() & STAT_COINCIDENCE_INTERRUPT) && (getLY() == getLYC())){
-            uint8_t interruptFlags = m_gbmemory->direct_read(ADDRESS_IF);
-            m_gbmemory->write(ADDRESS_IF, interruptFlags | INTERRUPT_FLAG_STAT);
-        }
     }
 }
 
