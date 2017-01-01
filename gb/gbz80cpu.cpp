@@ -6,9 +6,10 @@
 #include "gblcd.h"
 #include "bytehelpers.h"
 
-GBZ80::GBZ80(GBMem* memory, GBLCD* lcd){
+GBZ80::GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio){
     m_gbmemory = memory;
     m_gblcd = lcd;
+    m_gbaudio = audio;
     m_bSingleStep = SINGLE_STEP;
     init();
 }
@@ -116,6 +117,9 @@ void GBZ80::tick(float deltaTime){
         //Memory tick is for system timer functionality.
         //TODO - move timer stuff into its own class!
         m_gbmemory->tick(nextCycleLength);
+        
+        
+        m_gbaudio->tick(nextCycleLength);
         
         if(m_bStop){
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "Processor is stopped" << std::endl;

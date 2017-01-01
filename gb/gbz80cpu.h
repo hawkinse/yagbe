@@ -3,6 +3,7 @@
 #include <vector>
 #include "gbmem.h"
 #include "gblcd.h"
+#include "gbaudio.h"
 #include "../IRenderer.h"
 #include "../IInputChecker.h"
 #include "../constants.h"
@@ -18,7 +19,7 @@
 
 class GBZ80{
   public:
-    GBZ80(GBMem* memory, GBLCD* lcd);
+    GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio);
     ~GBZ80();
     void init();
     void tick(float deltaTime);
@@ -38,6 +39,7 @@ class GBZ80{
   private:
     GBMem* m_gbmemory;
     GBLCD* m_gblcd;
+    GBAudio* m_gbaudio;
     
     //TODO - find a better place for this? Dont think it belongs in the CPU!
     IInputChecker* m_InputChecker;

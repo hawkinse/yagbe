@@ -4,6 +4,7 @@
 #include <string.h>
 #include "gbcart.h"
 #include "gblcd.h"
+#include "gbaudio.h"
 #include "gbpad.h"
 #include "gbserial.h"
 #include "../constants.h"
@@ -56,7 +57,42 @@
 #define ADDRESS_HDMA3  0xFF53 //GBC only
 #define ADDRESS_HDMA4  0xFF54 //GBC only
 #define ADDRESS_HDMA5  0xFF55 //GBC only
-//Sound addresses skipped for now
+
+//Square Wave 1 Channel Addresses
+#define ADDRESS_NR10 0xFF10
+#define ADDRESS_NR11 0xFF11
+#define ADDRESS_NR12 0xFF12
+#define ADDRESS_NR13 0xFF13
+#define ADDRESS_NR14 0xFF14
+
+//Square Wave 2 Channel Addresses
+#define ADDRESS_NR21 0xFF16
+#define ADDRESS_NR22 0xFF17
+#define ADDRESS_NR23 0xFF18
+#define ADDRESS_NR24 0xFF19
+
+//Wave Table Channel Addresses
+#define ADDRESS_NR30 0xFF1A
+#define ADDRESS_NR31 0xFF1B
+#define ADDRESS_NR32 0xFF1C
+#define ADDRESS_NR33 0xFF1D
+#define ADDRESS_NR34 0xFF1E
+
+//Noise Channel Addresses
+#define ADDRESS_NR41 0xFF20
+#define ADDRESS_NR42 0xFF21
+#define ADDRESS_NR43 0xFF22
+#define ADDRESS_NR44 0xFF23
+
+//Audio Control and Status Addresses
+#define ADDRESS_NR50 0xFF24
+#define ADDRESS_NR51 0xFF25
+#define ADDRESS_NR52 0xFF26
+
+//Wave Table Data
+#define ADDRESS_WAVE_TABLE_DATA_START 0xFF30
+#define ADDRESS_WAVE_TABLE_DATA_END   0xFF3F
+
 #define ADDRESS_JOYP   0xFF00
 #define ADDRESS_SERIAL_DATA 0xFF01
 #define ADDRESS_SERIAL_CONTROL 0xFF02
@@ -88,6 +124,7 @@ class GBMem{
   private:
     GBCart* m_gbcart;
     GBLCD* m_gblcd;
+    GBAudio* m_gbaudio;
     GBPad* m_gbpad;
     GBSerial* m_gbserial;
     
@@ -131,6 +168,7 @@ class GBMem{
     
     void loadCart(GBCart* cart);
     void setLCD(GBLCD* lcd);
+    void setAudio(GBAudio* audio);
     void setPad(GBPad* pad);
     void setSerial(GBSerial* serial);
     

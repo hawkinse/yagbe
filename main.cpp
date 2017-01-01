@@ -8,8 +8,8 @@
 #include "gb/gbcart.h"
 #include "gb/gbpad.h"
 #include "gb/gblcd.h"
+#include "gb/gbaudio.h"
 #include "gb/gbserial.h"
-#include "IRenderer.h"
 #include "SDLBufferRenderer.h"
 #include "SDLInputChecker.h"
 
@@ -24,6 +24,7 @@ float windowScale;
 GBCart* m_gbcart;
 GBMem* m_gbmem;
 GBLCD* m_gblcd;
+GBAudio* m_gbaudio;
 GBZ80* m_gbcpu;
 GBPad* m_gbpad;
 GBSerial* m_gbserial;
@@ -42,19 +43,22 @@ void init_gb(char* filename, char* bootrom = NULL){
     m_gbmem = new GBMem();
     m_gbmem->loadCart(m_gbcart);
     m_gblcd = new GBLCD(m_gbmem);
-    m_gbcpu = new GBZ80(m_gbmem, m_gblcd);
+    m_gbaudio = new GBAudio(m_gbmem);
+    m_gbcpu = new GBZ80(m_gbmem, m_gblcd, m_gbaudio);
     m_gbpad = new GBPad(m_gbmem);
     m_gbserial = new GBSerial(m_gbmem);
     
     m_gbcart->printCartInfo();
     m_gbmem->setPad(m_gbpad);
     m_gbmem->setLCD(m_gblcd);
+    m_gbmem->setAudio(m_gbaudio);
     m_gbmem->setSerial(m_gbserial);
 }
 
 void destroy_gb(){
     delete m_gbpad;
     delete m_gbcpu;
+    delete m_gbaudio;
     delete m_gblcd;
     delete m_gbmem;
     delete m_gbcart;
@@ -63,9 +67,11 @@ void destroy_gb(){
 
 bool init_sdl(float windowScale = 1.0f, bool showBackgroundMap = false){
     bool bSuccess = true;
+    
+    //Initialize with VSync so we don't waste processor cycles needlessly and burn battery life
     int RenderFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
     
-    if(SDL_Init(SDL_INIT_VIDEO) >= 0){
+    if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) >= 0){
 	//Generate window title
 	char* windowTitle = new char[24];
         memcpy(windowTitle, "Yagbe: ", 7);
@@ -75,7 +81,6 @@ bool init_sdl(float windowScale = 1.0f, bool showBackgroundMap = false){
         m_SDLWindow = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, FRAMEBUFFER_WIDTH * windowScale, FRAMEBUFFER_HEIGHT * windowScale, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
         
         if(m_SDLWindow){
-            //Initialize with VSync so we don't waste processor cycles needlessly and burn battery life
             m_SDLWindowRenderer = SDL_CreateRenderer(m_SDLWindow, -1, RenderFlags);
             
             if(!m_SDLWindowRenderer){
@@ -163,7 +168,7 @@ int main(int argc, char** argv){
   }
   
   //Initialize SDL with no window scaling and background map enabled
-  init_sdl(2.0f, false);
+  init_sdl(3.0f, false);
   
   //Connect SDL to the gameboy emulator display
   m_MainBufferRenderer = new SDLBufferRenderer(m_SDLWindowRenderer);
@@ -181,6 +186,9 @@ int main(int argc, char** argv){
   //Clean up before exit  
   destroy_gb();
   destroy_sdl();
+  
+  delete m_MainBufferRenderer;
+  delete m_InputChecker;
   
   return 0;
 }

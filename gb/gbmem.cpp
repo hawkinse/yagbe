@@ -142,7 +142,49 @@ void GBMem::write(uint16_t address, uint8_t value){
   } else if(address == ADDRESS_DMA){
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Writing address for OAM DMA Transfer" << std::endl;
       m_gblcd->startDMATransfer(value);
-  }else if (address == ADDRESS_IF){
+  } else if (address == ADDRESS_NR10){
+      m_gbaudio->setNR10(value);
+  } else if (address == ADDRESS_NR11){
+      m_gbaudio->setNR11(value);
+  } else if (address == ADDRESS_NR12){
+      m_gbaudio->setNR12(value);
+  } else if (address == ADDRESS_NR13){
+      m_gbaudio->setNR13(value);
+  } else if (address == ADDRESS_NR14){
+      m_gbaudio->setNR14(value);
+  } else if (address == ADDRESS_NR21){
+      m_gbaudio->setNR21(value);
+  } else if (address == ADDRESS_NR22){
+      m_gbaudio->setNR22(value);
+  } else if (address == ADDRESS_NR23){
+      m_gbaudio->setNR23(value);
+  } else if (address == ADDRESS_NR24){
+      m_gbaudio->setNR24(value);
+  } else if (address == ADDRESS_NR30){
+      m_gbaudio->setNR30(value);
+  } else if (address == ADDRESS_NR31){
+      m_gbaudio->setNR31(value);
+  } else if (address == ADDRESS_NR32){
+      m_gbaudio->setNR32(value);
+  } else if (address == ADDRESS_NR33){
+      m_gbaudio->setNR33(value);
+  } else if (address == ADDRESS_NR34){
+      m_gbaudio->setNR34(value);
+  } else if (address == ADDRESS_NR41){
+      m_gbaudio->setNR41(value);
+  } else if (address == ADDRESS_NR42){
+      m_gbaudio->setNR42(value);
+  } else if (address == ADDRESS_NR43){
+      m_gbaudio->setNR43(value);
+  } else if (address == ADDRESS_NR44){
+      m_gbaudio->setNR44(value);
+  } else if (address == ADDRESS_NR50){
+      m_gbaudio->setNR50(value);
+  } else if (address == ADDRESS_NR51){
+      m_gbaudio->setNR51(value);
+  } else if (address == ADDRESS_NR52){
+      m_gbaudio->setNR52(value);
+  } else if (address == ADDRESS_IF){
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Writing interrupt flags";
       m_mem[ADDRESS_IF] = value;
   }else {
@@ -205,6 +247,10 @@ void GBMem::loadCart(GBCart* cart){
 
 void GBMem::setLCD(GBLCD* lcd){
     m_gblcd = lcd;
+}
+
+void GBMem::setAudio(GBAudio* audio){
+    m_gbaudio = audio;
 }
 
 void GBMem::setPad(GBPad* pad){
