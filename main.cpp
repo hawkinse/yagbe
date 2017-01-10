@@ -11,6 +11,7 @@
 #include "gb/gbaudio.h"
 #include "gb/gbserial.h"
 #include "SDLBufferRenderer.h"
+#include "SDLAudioPlayer.h"
 #include "SDLInputChecker.h"
 
 using namespace std;
@@ -35,6 +36,7 @@ SDL_Renderer* m_SDLWindowRenderer;
 
 //SDL Implementations of Gameboy interaction interfaces
 SDLBufferRenderer* m_MainBufferRenderer;
+SDLAudioPlayer* m_AudioPlayer;
 SDLInputChecker* m_InputChecker;
 
 
@@ -176,6 +178,10 @@ int main(int argc, char** argv){
   //Connect SDL to LCD emulation
   m_gblcd->setMainRenderer(m_MainBufferRenderer);
   
+  //Connect SDL to Audio emulation
+  m_AudioPlayer = new SDLAudioPlayer();
+  m_gbaudio->setPlayer(m_AudioPlayer);
+  
   //Set up pad input
   m_InputChecker = new SDLInputChecker(m_gbpad);
   m_gbcpu->setInputChecker(m_InputChecker);
@@ -188,6 +194,7 @@ int main(int argc, char** argv){
   destroy_sdl();
   
   delete m_MainBufferRenderer;
+  delete m_AudioPlayer;
   delete m_InputChecker;
   
   return 0;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include "gbmem.h"
+#include "gbz80cpu.h" //Included for clock speed access. TODO - get actual clock speed
 
 GBAudio::GBAudio(GBMem* mem){
     m_gbmemory = mem;
@@ -15,6 +16,18 @@ void GBAudio::tick(long long hz){
     //std::cout << "Unimplemented audio tick " << +hz << " cycles" << std::endl;
 }
 
+void GBAudio::tickSquare1(long long hz){
+}
+
+void GBAudio::tickSquare2(long long hz){
+}
+
+void GBAudio::tickWave(long long hz){
+}
+
+void GBAudio::tickNoise(long long hz){
+}
+        
 void GBAudio::setPlayer(IAudioPlayer* player){
     m_player = player;
 }
@@ -99,8 +112,40 @@ uint8_t GBAudio::getNR23(){
 
 //Trigger, has length, frequency high byte
 void GBAudio::setNR24(uint8_t val){
+    //Check if trigger is being set
+    if(val & CHANNEL_TRIGGER){
+        m_square1Triggered = true;
+        //Enable channel, see length counter documentation
+        
+        //Check if length counter is 0, set to length load if so.
+        if(m_square2LengthCounter == 0){
+            m_square2LengthCounter = 64;
+        }
+        
+        //Load frequency timer with period (from NR12?)
+        m_square2FrequencyTimer = getNR12() & CHANNEL_PERIOD;
+        
+        //Load volume envelope timer with period (from NR12?)
+        m_square2VolumeEnvelopeTimer = m_square2FrequencyTimer;
+        
+        //Load channel volume from NR22
+        m_square2Volume = getNR22() & CHANNEL_VOLUME_START;
+        
+        //Other channel specific stuff... none to worry about with Square 2.
+        
+        //Check if channel DAC is off and disable self again if so.
+        //DAC is checked using upper 5 bits of NR22
+        if(!(getNR22() & (CHANNEL_VOLUME_START | CHANNEL_ENVELOPE))){
+            m_square1Triggered = false;
+            val &= ~CHANNEL_TRIGGER;
+            m_square2LengthCounter = 0;
+            m_square1Triggered = false;
+        }
+    }
+    
     //TL-- -FFF
     m_gbmemory->direct_write(ADDRESS_NR24, val & 0xC7);
+    
 }
 
 uint8_t GBAudio::getNR24(){
