@@ -328,34 +328,57 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
                 m_cartRam[realAddr] = val;
             }
         }
-    } else if (address >= ADDRESS_MBC1_ROM_BANK_NUM_START && address <= ADDRESS_MBC1_ROM_BANK_NUM_END){
-        //Handle special cases
-        if(val == 0){
-            val = 1;
-        } else if (val == 0x20){
-            val = 0x21;
-        } else if (val == 0x40){
-            val = 0x41;
-        } else if (val == 0x60){
-            val = 0x61;
-        }
+    } else if ((address >= ADDRESS_MBC1_ROM_BANK_NUM_START) && (address <= ADDRESS_MBC1_ROM_BANK_NUM_END)){
+        std::cout << "Writing lower cart bank bits" << std::endl;
         
         //Only set the lower 5 bits
         m_cartRomBank = (m_cartRomBank & 0xE0) | (val & 0x1F);
+        
+        //Handle special cases
+        if(m_cartRomBank == 0x20){
+            m_cartRomBank = 0x21;
+        } else if (m_cartRomBank == 0x40){
+            m_cartRomBank = 0x41;
+        } else if (m_cartRomBank == 0x60){
+            m_cartRomBank = 0x61;
+        }
+        
         std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
         std::cout << "Attempt to set ram bank number or upper rom bank number bits!" << std::endl;
-        std::cin.get();
+        
         if(m_bMBC1RomRamSelect){
             m_cartRamBank = val;
+            std::cout << "Ram bank is now " << +m_cartRamBank << std::endl;
         } else {
             //m_cartRomBank = (m_cartRomBank & 0x3F) | (0xC0 & (val << 6));
             m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
+            
+            //Handle special cases.
+            if(m_cartRomBank == 0x20){
+                m_cartRomBank = 0x21;
+            } else if (m_cartRomBank == 0x40){
+                m_cartRomBank = 0x41;
+            } else if (m_cartRomBank == 0x60){
+                m_cartRomBank = 0x61;
+            }
+        
+            std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
         }      
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
         m_bMBC1RomRamSelect = val & 0x01;
+        
+        //Rom/Ram select changes which ram and rom banks are usable.
+        if(m_bMBC1RomRamSelect){
+            //In RAM mode, only the lower 5 bits of the rom bank are accessable
+            m_cartRomBank &= 0x1F;
+        } else {
+            //In ROM mode, only ram bank 0 is accessable. 
+            m_cartRamBank = 0;
+        }
+        
     } else {
         std::cout << "Attempting to write to an unsupported address" << std::endl;
         std::cin.get();
