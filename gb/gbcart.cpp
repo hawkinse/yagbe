@@ -369,7 +369,7 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
         m_bMBC1RomRamSelect = val & 0x01;
-        
+        //TODO - need to store rom and ram banks in same value so that upper bits can be recycled when switching modes!
         //Rom/Ram select changes which ram and rom banks are usable.
         if(m_bMBC1RomRamSelect){
             //In RAM mode, only the lower 5 bits of the rom bank are accessable
