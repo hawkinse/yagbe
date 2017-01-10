@@ -291,16 +291,18 @@ uint8_t GBCart::read_MBC1(uint16_t address){
     uint8_t toReturn = 0xFF;
     if(address >= ROM_BANK_N_START && address <= ROM_BANK_N_END){
         //int realAddr = address + ((m_cartRomBank - 1) * ROM_BANK_N_START);
-        int realAddr = (address - ROM_BANK_N_START) + ((m_cartRomBank) * ROM_BANK_N_START);
+        int realAddr = (address - ROM_BANK_N_START) + (((m_bMBC1RomRamSelect ? m_cartRomBank & 0x1F : m_cartRomBank)) * ROM_BANK_N_START);
         if(realAddr >= m_cartDataLength){
-            std::cout << "Attempt to read cart rom at address " << +address << " when cart only has " << +m_cartRamLength << " bytes!" << std::endl;
+            std::cout << "Attempt to read cart rom at address " << +address << " when cart only has " << +m_cartDataLength << " bytes!" << std::endl;
         } else {
             toReturn = m_cartRom[realAddr];
         }
     } else if (address >= EXTRAM_START && address <= EXTRAM_END){
         if(m_bCartRamEnabled){
             std::cout << "MBC1 ram read" << std::endl;
-            int realAddr = (EXTRAM_START * m_cartRamBank) + (address - EXTRAM_START);
+            uint16_t realRamBank = (m_bMBC1RomRamSelect ? m_cartRamBank : 0);
+            
+            int realAddr = (EXTRAM_START * realRamBank) + (address - EXTRAM_START);
             if(realAddr >= m_cartRamLength){
                 std::cout << "Attempt to read cart ram at address " << +address << " when cart only has " << +m_cartRamLength << " bytes!" << std::endl;
             } else {
@@ -335,7 +337,9 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
         m_cartRomBank = (m_cartRomBank & 0xE0) | (val & 0x1F);
         
         //Handle special cases
-        if(m_cartRomBank == 0x20){
+        if(m_cartRomBank == 0){
+            m_cartRomBank = 1;
+        } else if(m_cartRomBank == 0x20){
             m_cartRomBank = 0x21;
         } else if (m_cartRomBank == 0x40){
             m_cartRomBank = 0x41;
@@ -347,12 +351,15 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
         std::cout << "Attempt to set ram bank number or upper rom bank number bits!" << std::endl;
         
+        //Set upper bits of rom bank even if not in rom mode. Bits will be ignored depending on rom/ram select.
+        m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
+        
         if(m_bMBC1RomRamSelect){
             m_cartRamBank = val;
             std::cout << "Ram bank is now " << +m_cartRamBank << std::endl;
         } else {
             //m_cartRomBank = (m_cartRomBank & 0x3F) | (0xC0 & (val << 6));
-            m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
+            //m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
             
             //Handle special cases.
             if(m_cartRomBank == 0x20){
@@ -362,23 +369,13 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
             } else if (m_cartRomBank == 0x60){
                 m_cartRomBank = 0x61;
             }
-        
+            
             std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
         }      
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
-        m_bMBC1RomRamSelect = val & 0x01;
-        //TODO - need to store rom and ram banks in same value so that upper bits can be recycled when switching modes!
-        //Rom/Ram select changes which ram and rom banks are usable.
-        if(m_bMBC1RomRamSelect){
-            //In RAM mode, only the lower 5 bits of the rom bank are accessable
-            m_cartRomBank &= 0x1F;
-        } else {
-            //In ROM mode, only ram bank 0 is accessable. 
-            m_cartRamBank = 0;
-        }
-        
+        m_bMBC1RomRamSelect = val & 0x01;        
     } else {
         std::cout << "Attempting to write to an unsupported address" << std::endl;
         std::cin.get();

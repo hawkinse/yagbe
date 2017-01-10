@@ -75,8 +75,10 @@ class GBCart{
     bool m_bHasRumble;
     
     bool m_bBootRomEnabled;
+    
     uint8_t m_cartRomBank;
     uint8_t m_cartRamBank;
+    
     bool m_bCartRamEnabled;
     
     bool m_bMBC1RomRamSelect;
