@@ -291,18 +291,17 @@ uint8_t GBCart::read_MBC1(uint16_t address){
     uint8_t toReturn = 0xFF;
     if(address >= ROM_BANK_N_START && address <= ROM_BANK_N_END){
         //int realAddr = address + ((m_cartRomBank - 1) * ROM_BANK_N_START);
-        uint8_t realRomBank = (m_bMBC1RomRamSelect ? m_cartRomBank & 0x1F : m_cartRomBank);
+        uint8_t realRomBank = (m_bMBC1RomRamSelect ? m_cartRomBank & 0x1F : m_cartRomBank & 0x3F);
         
         //If the lower bits are 0, increment. 
         
         if((realRomBank & 0x1F) == 0){
-            realRomBank &= 0xE0;
             realRomBank |= 1;
         }
         
         int realAddr = (address - ROM_BANK_N_START) + (realRomBank * ROM_BANK_N_START);
         if(realAddr >= m_cartDataLength){
-            std::cout << "Attempt to read cart rom at address " << +address << " when cart only has " << +m_cartDataLength << " bytes!" << std::endl;
+            std::cout << "Attempt to read cart rom at address " << +realAddr << " when cart only has " << +m_cartDataLength << " bytes!" << std::endl;
         } else {
             toReturn = m_cartRom[realAddr];
         }
