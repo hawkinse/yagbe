@@ -235,6 +235,10 @@ void GBCart::postCartLoadSetup(){
             std::cout << "Cart is MBC2" << std::endl;
             cartRead = &GBCart::read_MBC2;
             cartWrite = &GBCart::write_MBC2;
+            ///MBC2 has a fixed ram size, set here.
+            m_cartRamLength = 512;
+            delete m_cartRam;
+            m_cartRam = new uint8_t[m_cartRamLength];
             break;
         case ROM_MBC3:
         case ROM_MBC3_RAM_BATT:
@@ -360,12 +364,43 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
 }
     
 uint8_t GBCart::read_MBC2(uint16_t address){
-    std::cout << "Unimplemented MBC2 read" << std::endl;
-    return 0xFF;
+    //std::cout << "Unimplemented MBC2 read" << std::endl;
+    
+    //Reading MBC2 appears to be compatible with reading MBC1
+    return read_MBC1(address);
 }
 
 void GBCart::write_MBC2(uint16_t address, uint8_t val){
-    std::cout << "Unimplemented MBC2 write" << std::endl;
+    //std::cout << "Unimplemented MBC2 write" << std::endl;
+    
+    if(address >= ADDRESS_CART_RAM_ENABLE_START && address <= ADDRESS_CART_RAM_ENABLE_END){
+        //Only set cart ram if address uppermost bit is 0
+        if(address & 0xEF){
+            m_bCartRamEnabled = ((val & 0x0F) == CART_RAM_VALUE_ENABLED);
+        }
+    } else if(address >= EXTRAM_START && address <= EXTRAM_END){
+        if(m_bCartRamEnabled || true){
+            //No ram banks in MBC2.
+            int realAddr = EXTRAM_START + (address - EXTRAM_START);
+            if(realAddr >= m_cartRamLength){
+                std::cout << "Attempt to write cart ram at address " << +address << " when cart only has " << +m_cartRamLength << " bytes!" << std::endl;
+            } else {
+                //Only lower four bits are used for ram in MBC2.
+                m_cartRam[realAddr] = val & 0x0F;
+            }
+        }
+    } else if ((address >= ADDRESS_MBC2_ROM_BANK_NUM_START) && (address <= ADDRESS_MBC2_ROM_BANK_NUM_END)){
+        
+        //Only write if bit 5 is 0.
+        if(address & 0x0100){
+            std::cout << "Writing cart bank register" << std::endl;
+        
+            //Only set the lower 4 bits
+            m_cartRomBank = val & 0x0F;
+        
+            std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
+        }
+    }
 }
     
 uint8_t GBCart::read_MBC3(uint16_t address){
