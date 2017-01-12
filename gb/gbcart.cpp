@@ -374,8 +374,8 @@ void GBCart::write_MBC2(uint16_t address, uint8_t val){
     //std::cout << "Unimplemented MBC2 write" << std::endl;
     
     if(address >= ADDRESS_CART_RAM_ENABLE_START && address <= ADDRESS_CART_RAM_ENABLE_END){
-        //Only set cart ram if address uppermost bit is 0
-        if(address & 0xEF){
+        //Only set cart ram if least significant bit of most significant byte is 0.
+        if(~address & 0x0100){
             m_bCartRamEnabled = ((val & 0x0F) == CART_RAM_VALUE_ENABLED);
         }
     } else if(address >= EXTRAM_START && address <= EXTRAM_END){
