@@ -225,10 +225,9 @@ void GBLCD::incrementLY(){
     m_gbmemory->direct_write(ADDRESS_LY, getLY() + 1);
 }
 
-RGBColor GBLCD::getColor(uint8_t palette, uint8_t colorIndex, bool hasTransparency = false){
+RGBColor GBLCD::getColor(uint8_t palette, uint8_t colorIndex){
     RGBColor toReturn;
     
-    //Transparency in a color palette indicates the first bit is unused
     uint8_t colorPalette[4];
     colorPalette[0] = palette & 0x03;
     colorPalette[1] = (palette >> 2) & 0x03;
@@ -254,7 +253,8 @@ RGBColor GBLCD::getColor(uint8_t palette, uint8_t colorIndex, bool hasTransparen
             break;
     }
     
-    if(colorIndex == 0 && hasTransparency){
+    //The 0th color index indicates either a transparent sprite color or a background color which doesn't block transparent sprites.
+    if(colorIndex == 0){
         toReturn.transparent = true;
     }
     
@@ -295,7 +295,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
         
         for(int tileX = (bScrolledTileDrawn ? 0 : (getScrollX() % TILE_WIDTH)); tileX < TILE_WIDTH; tileX++){
             if(bgPixelX  >= FRAMEBUFFER_WIDTH) break;
-            frameBuffer[bgPixelX][getLY()] = getColor(getBGPalette(), m_TempTile[tileX], false);
+            frameBuffer[bgPixelX][getLY()] = getColor(getBGPalette(), m_TempTile[tileX]);
             
             bgPixelX++;
         }
@@ -342,7 +342,7 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
                     int colorIndex = m_TempTile[tileX];
             
                     if(bgPixelX + tileX < FRAMEBUFFER_WIDTH){
-                        frameBuffer[(bgPixelX + tileX)][getLY()] = getColor(getBGPalette(), colorIndex, false);
+                        frameBuffer[(bgPixelX + tileX)][getLY()] = getColor(getBGPalette(), colorIndex);
                     } else {
                         break;
                     }
@@ -404,20 +404,12 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                     //std::cin.get();
                     int renderPosX = realXPos + tileX;
                     if(renderPosX > 0 && renderPosX < FRAMEBUFFER_WIDTH){
-                        RGBColor pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)], true);
-                            
-                        //TODO - figure out why this broke
-                        /*
-                        if(!(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || (frameBuffer[renderPosX][getLY()].transparent)){
-                            if(!pixel.transparent){
+                        RGBColor pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+                         
+                        if(!pixel.transparent){
+                            if(!(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || frameBuffer[renderPosX][getLY()].transparent){
                                 frameBuffer[renderPosX][getLY()] = pixel;
                             }
-                        }
-                        */
-                        
-                        //Replacement for the above for loop. Doesn't seem to work (Pokemon Red intro as reference), but doesn't break Tetris like above. 
-                        if(!pixel.transparent && (!((spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) && frameBuffer[renderPosX][getLY()].transparent))){
-                            frameBuffer[renderPosX][getLY()] = pixel;
                         }
                         
                     }

@@ -140,7 +140,7 @@ class GBLCD{
         //Increments LY
         void incrementLY();
         
-        RGBColor getColor(uint8_t palette, uint8_t colorIndex, bool hasTransparency);
+        RGBColor getColor(uint8_t palette, uint8_t colorIndex);
         
         //Updates the background buffer
         void updateBackground();
