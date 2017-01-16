@@ -1714,7 +1714,6 @@ void GBZ80::instruction_daa(){
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "daa" << "\n";
     
     //Logic from /u/mudanhonnyaku's post on Reddit in /r/emudev
-    //Still does not pass Blaarg test, but games run better than original implementation
     uint8_t regA = getRegisterA();
     uint8_t result = regA;
     bool flagC = getFlag_C();
