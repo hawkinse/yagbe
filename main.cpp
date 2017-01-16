@@ -45,16 +45,16 @@ void init_gb(char* filename, char* bootrom = NULL){
     m_gbmem = new GBMem();
     m_gbmem->loadCart(m_gbcart);
     m_gblcd = new GBLCD(m_gbmem);
+    m_gbmem->setLCD(m_gblcd);
     m_gbaudio = new GBAudio(m_gbmem);
+    m_gbmem->setAudio(m_gbaudio);
     m_gbcpu = new GBZ80(m_gbmem, m_gblcd, m_gbaudio);
     m_gbpad = new GBPad(m_gbmem);
+    m_gbmem->setPad(m_gbpad);
     m_gbserial = new GBSerial(m_gbmem);
+    m_gbmem->setSerial(m_gbserial);
     
     m_gbcart->printCartInfo();
-    m_gbmem->setPad(m_gbpad);
-    m_gbmem->setLCD(m_gblcd);
-    m_gbmem->setAudio(m_gbaudio);
-    m_gbmem->setSerial(m_gbserial);
 }
 
 void destroy_gb(){
@@ -170,7 +170,7 @@ int main(int argc, char** argv){
   }
   
   //Initialize SDL with no window scaling and background map enabled
-  init_sdl(3.0f, false);
+  init_sdl(2.0f, false);
   
   //Connect SDL to the gameboy emulator display
   m_MainBufferRenderer = new SDLBufferRenderer(m_SDLWindowRenderer);
