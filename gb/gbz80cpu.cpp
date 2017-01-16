@@ -1718,7 +1718,7 @@ void GBZ80::instruction_daa(){
     uint8_t regA = getRegisterA();
     uint8_t result = regA;
     bool flagC = getFlag_C();
-    if(flagC || (regA > 0x99)){
+    if(flagC || (!getFlag_N() && (regA > 0x99))){
         if(getFlag_N()){
             result -= 0x60;
         } else {
@@ -1729,7 +1729,7 @@ void GBZ80::instruction_daa(){
     }
     
     uint8_t flagH = getFlag_H();
-    if(flagH || ((regA & 0x0F) > 9)){
+    if(flagH || (!getFlag_N() && ((regA & 0x0F) > 9))){
         if(getFlag_N()){
             result -= 6;
         } else {
