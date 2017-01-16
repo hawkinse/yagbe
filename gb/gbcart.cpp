@@ -312,7 +312,7 @@ uint8_t GBCart::read_MBC1(uint16_t address){
     } else if (address >= EXTRAM_START && address <= EXTRAM_END){
         if(m_bCartRamEnabled){
             std::cout << "MBC1 ram read" << std::endl;
-            uint16_t realRamBank = (m_bMBC1RomRamSelect ? ((m_cartRomBank & 0x1F) >> 6) : 0);
+            uint16_t realRamBank = (m_bMBC1RomRamSelect ? ((m_cartRomBank & 0x60) >> 5) : 0);
             
             int realAddr = (EXTRAM_START * realRamBank) + (address - EXTRAM_START);
             if(realAddr >= m_cartRamLength){
@@ -330,10 +330,10 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
     std::cout << "Cart write. Address: " << +address << ", value: " << +val << std::endl;
     
     if(address >= ADDRESS_CART_RAM_ENABLE_START && address <= ADDRESS_CART_RAM_ENABLE_END){
-        m_bCartRamEnabled = ((val & 0x0F) == CART_RAM_VALUE_ENABLED);
+        m_bCartRamEnabled = ((val & CART_RAM_VALUE_ENABLED));
     } else if(address >= EXTRAM_START && address <= EXTRAM_END){
         std::cout << "Writing to cart ram!" << std::endl;
-        if(m_bCartRamEnabled || true){
+        if(m_bCartRamEnabled /*|| true*/){
             int realAddr = (EXTRAM_START * m_cartRamBank) + (address - EXTRAM_START);
             if(realAddr >= m_cartRamLength){
                 std::cout << "Attempt to write cart ram at address " << +address << " when cart only has " << +m_cartRamLength << " bytes!" << std::endl;
@@ -342,17 +342,17 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
             }
         }
     } else if ((address >= ADDRESS_MBC1_ROM_BANK_NUM_START) && (address <= ADDRESS_MBC1_ROM_BANK_NUM_END)){
-        std::cout << "Writing cart bank register" << std::endl;
+        std::cout << "Writing cart bank register lower bits" << std::endl;
         
         //Only set the lower 5 bits
-        m_cartRomBank = (m_cartRomBank & 0xE0) | (val & 0x1F);
+        m_cartRomBank = (m_cartRomBank & 0x60) | (val & 0x1F);
         
         std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
-        std::cout << "Attempt to set ram bank number or upper rom bank number bits!" << std::endl;
+        std::cout << "Writing cart bank register lower bits" << std::endl;
         
         //Set upper bits of rom bank even if not in rom mode. Bits will be ignored depending on rom/ram select.
-        m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 6));
+        m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
@@ -372,6 +372,7 @@ uint8_t GBCart::read_MBC2(uint16_t address){
 
 void GBCart::write_MBC2(uint16_t address, uint8_t val){
     //std::cout << "Unimplemented MBC2 write" << std::endl;
+    std::cout << "Cart write. Address: " << +address << ", value: " << +val << std::endl;
     
     if(address >= ADDRESS_CART_RAM_ENABLE_START && address <= ADDRESS_CART_RAM_ENABLE_END){
         //Only set cart ram if least significant bit of most significant byte is 0.
