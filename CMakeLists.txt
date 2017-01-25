@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.8)
 set(BIN_DIR ${yagbe_SOURCE_DIR}/build)
 set(CMake_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-add_executable(${PROJECT_NAME} main.cpp SDLBufferRenderer.cpp SDLInputChecker.cpp gb/gbz80cpu.cpp gb/gbmem.cpp gb/gbcart.cpp gb/gbpad.cpp gb/gblcd.cpp gb/gbaudio.cpp gb/gbserial.cpp)
+add_executable(${PROJECT_NAME} main.cpp SDLAudioPlayer.cpp SDLBufferRenderer.cpp SDLInputChecker.cpp gb/gbz80cpu.cpp gb/gbmem.cpp gb/gbcart.cpp gb/gbpad.cpp gb/gblcd.cpp gb/gbaudio.cpp gb/gbserial.cpp)
 
 INCLUDE(FindPkgConfig)
 
