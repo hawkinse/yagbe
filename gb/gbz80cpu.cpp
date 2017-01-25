@@ -104,7 +104,7 @@ void GBZ80::tick(float deltaTime){
     while(cycles >= nextCycleLength){
         
         //Run next instruction if CPU is active
-        if(!(m_bStop || m_bHalt)){
+        if(!(m_bStop || (m_bHalt && !IGNORE_HALT))){
             //Run the next instruction
             uint8_t directRead = m_gbmemory->read(PC);
             uint8_t nextInstr = read_next_byte();
@@ -927,10 +927,10 @@ void GBZ80::instruction_ld_NNI_SP(uint16_t nn){
 
 //Push the given two bytes onto the stack and decrement SP accordingly
 void GBZ80::instruction_push_generic(uint16_t val){
+    SP--;
     m_gbmemory->write(getRegisterSP(), getMSB(val));
     SP--;
     m_gbmemory->write(getRegisterSP(), getLSB(val));
-    SP--;
     
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "\nPush instruction performed! Value pushed: " << +val << "SP: " << +SP << std::endl;
 }
@@ -960,10 +960,10 @@ void GBZ80::instruction_push_HL(){
 uint16_t GBZ80::instruction_pop_generic(){
     uint16_t val = 0;
     
-    SP++;
     val += m_gbmemory->read(getRegisterSP());
     SP++;
     val = setMSB(val, m_gbmemory->read(getRegisterSP()));
+    SP++;
     
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "\nPop instruction called! Value popped: " << val << "\nSP: " << SP << std::endl;
     return val;
@@ -3534,7 +3534,7 @@ void GBZ80::instruction_reti(){
     
     //Set both interrupt flags at once so that the next flag won't undo the current flag. 
     m_bInterruptsEnabled = true;
-    m_bInterruptsEnabledNext = true;
+    m_bInterruptsEnabledNext = false;
 }
 
 //Execution functions
@@ -5870,13 +5870,10 @@ void GBZ80::process_interrupts(){
             //Reset flag. 
             m_gbmemory->direct_write(ADDRESS_IF, raisedFlags & ~currentFlag);
             
-            //Ignore disabling of interrupts to see if it fixes tetris title screen
-            
             //Disable interrupts - originally true. Was this because of the above comment?
             m_bInterruptsEnabled = false;
-            m_bInterruptsEnabledNext = false;
-            
-            
+            //m_bInterruptsEnabledNext = false;
+                        
             //Store next instruction on the stack
             instruction_push_generic(PC);
             
