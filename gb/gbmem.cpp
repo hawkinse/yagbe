@@ -40,12 +40,18 @@ void GBMem::increment_RegisterTIMA(long long hz){
     //Store any unused Hz so that we can factor it into the next update
     static long long timeRollover = 0;
     
+    //Only increment register if timer is enabled.
+    if(!(m_mem[ADDRESS_TAC] & 0x04)){
+        timeRollover = 0;
+        return;
+    }
+    
     //Include any previous clock unused from the last update
     hz += timeRollover;
     
     //Gets the clock used to increment the TIMA register
     int TAC_Clock = 0;
-    uint8_t TAC_ClockSelect = m_mem[ADDRESS_TAC] & 2;
+    uint8_t TAC_ClockSelect = m_mem[ADDRESS_TAC] & 3;
     switch(TAC_ClockSelect){
         case TAC_CLOCK_4096:
             TAC_Clock = 1024;
@@ -67,7 +73,8 @@ void GBMem::increment_RegisterTIMA(long long hz){
     //Increment the TIMA register
     while(hz >= TAC_Clock){
         //Check if we need to fire the timer interrupt
-        if(m_mem[ADDRESS_TIMA] + 1 < m_mem[ADDRESS_TIMA]){
+        //if(((m_mem[ADDRESS_TIMA] + 1) & 0xFF) < m_mem[ADDRESS_TIMA]){
+        if((m_mem[ADDRESS_TIMA] + 1) > 0xFF){
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "TIMA register rolled over. Setting interrupt flag" << std::endl;
             
             //Set the timmer interrupt flag
