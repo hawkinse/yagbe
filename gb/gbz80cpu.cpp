@@ -922,7 +922,8 @@ void GBZ80::instruction_ldhl(int8_t n){
 //Put SP into address n
 void GBZ80::instruction_ld_NNI_SP(uint16_t nn){
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "ld (" << nn << "),SP" << "\n";
-    m_gbmemory->write(nn, getRegisterSP());
+    m_gbmemory->write(nn, getRegisterSP() & 0xFF);
+    m_gbmemory->write(nn+1, (getRegisterSP() >> 8) & 0xFF);
 }
 
 //Push the given two bytes onto the stack and decrement SP accordingly
