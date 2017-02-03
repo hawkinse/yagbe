@@ -913,8 +913,9 @@ void GBZ80::instruction_ldhl(int8_t n){
     uint16_t result = getRegisterSP() + n;
     setFlag_Z(false);
     setFlag_N(false);
-    setFlag_C(result < getRegisterSP());
-    setFlag_H(((getRegisterSP() & 0x0FFF) + n) > 0x00FF);
+    //H and C flags are relative to 8-bit input, not 16-bit HL.
+    setFlag_H((SP & 0x0F) + (n & 0x0F) > 0x0F);
+    setFlag_C((SP & 0xFF) + (n & 0xFF) > 0xFF);
     
     setRegisterHL(result);
 }
@@ -1607,8 +1608,9 @@ void GBZ80::instruction_add_SP_CONST(int8_t val){
     
     setFlag_Z(false);
     setFlag_N(false);
-    setFlag_H((((SP & 0x0FFF) + val)) > 0x0FFF);
-    setFlag_C(cTest < SP);
+    //H and C flags are relative to 8-bit input, not 16-bit HL.
+    setFlag_H((SP & 0x0F) + (val & 0x0F) > 0x0F);
+    setFlag_C((SP & 0xFF) + (val & 0xFF) > 0xFF);
     
     SP += val;
 }
