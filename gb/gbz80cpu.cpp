@@ -1608,7 +1608,7 @@ void GBZ80::instruction_add_SP_CONST(int8_t val){
     
     setFlag_Z(false);
     setFlag_N(false);
-    //H and C flags are relative to 8-bit input, not 16-bit HL.
+    //H and C flags are relative to 8-bit input, not 16-bit SP.
     setFlag_H((SP & 0x0F) + (val & 0x0F) > 0x0F);
     setFlag_C((SP & 0xFF) + (val & 0xFF) > 0xFF);
     
