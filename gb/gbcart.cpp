@@ -298,11 +298,13 @@ uint8_t GBCart::read_MBC1(uint16_t address){
         uint8_t realRomBank = (m_bMBC1RomRamSelect ? m_cartRomBank & 0x1F : m_cartRomBank & 0x3F);
         
         //If the lower bits are 0, increment. 
-        
+        /*
         if((realRomBank & 0x1F) == 0){
             realRomBank |= 1;
-        }
+        }*/
         
+        //TODO - check if in bounds of cart and wrap bank around until it fits!
+        //https://github.com/Gekkio/mooneye-gb/blob/master/docs/accuracy.markdown
         int realAddr = (address - ROM_BANK_N_START) + (realRomBank * ROM_BANK_N_START);
         if(realAddr >= m_cartDataLength){
             std::cout << "Attempt to read cart rom at address " << +realAddr << " when cart only has " << +m_cartDataLength << " bytes!" << std::endl;
@@ -312,7 +314,7 @@ uint8_t GBCart::read_MBC1(uint16_t address){
     } else if (address >= EXTRAM_START && address <= EXTRAM_END){
         if(m_bCartRamEnabled){
             std::cout << "MBC1 ram read" << std::endl;
-            uint16_t realRamBank = (m_bMBC1RomRamSelect ? ((m_cartRomBank & 0x60) >> 5) : 0);
+            uint16_t realRamBank = (m_bMBC1RomRamSelect ? ((m_cartRomBank & 0x60) >> 6) : 0);
             
             int realAddr = (EXTRAM_START * realRamBank) + (address - EXTRAM_START);
             if(realAddr >= m_cartRamLength){
@@ -352,7 +354,7 @@ void GBCart::write_MBC1(uint16_t address, uint8_t val){
         std::cout << "Writing cart bank register lower bits" << std::endl;
         
         //Set upper bits of rom bank even if not in rom mode. Bits will be ignored depending on rom/ram select.
-        m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 5));
+        m_cartRomBank = (m_cartRomBank & 0x1F) | (0x60 & (val << 6));
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
