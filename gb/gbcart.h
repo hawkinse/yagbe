@@ -64,6 +64,7 @@ class GBCart{
     uint8_t m_LicenseeNewLow;
     bool m_bIsSGB;    
     uint8_t m_CartType;
+    uint8_t m_MBCType;
     uint8_t m_CartRomSize;
     uint8_t m_CartRamSize;
     uint8_t m_CartRegion;
@@ -76,7 +77,7 @@ class GBCart{
     
     bool m_bBootRomEnabled;
     
-    uint8_t m_cartRomBank;
+    uint16_t m_cartRomBank;
     uint8_t m_cartRamBank;
     
     bool m_bCartRamEnabled;
@@ -144,6 +145,15 @@ class GBCart{
         ROM_MBC3_TIMER_RAM_BATT = 0x10,
         ROM_MBC3 = 0x11,
         ROM_HUDSON_HUC1 = 0xFF
+    };
+
+    enum MBCType{
+        MBC_NONE = 0,
+        MBC_1,
+        MBC_2,
+        MBC_3,
+        MBC_5,
+        MBC_OTHER
     };
     
     enum ROMSize{
