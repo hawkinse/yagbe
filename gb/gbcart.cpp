@@ -17,6 +17,15 @@ GBCart::GBCart(char* filename, char* bootrom){
     m_cartRamBank = 0;
     m_bCartRamEnabled = false;
     m_bMBC1RomRamSelect = false;
+
+    m_bMBC3RamRTCSelect = false;
+    uint8_t m_rtcSeconds = 0;
+    uint8_t m_rtcMinutes = 0;
+    uint8_t m_rtcHours = 0;
+    uint8_t m_rtcLowerDayCounter = 0;
+    uint8_t m_rtcFlags = 0;
+    bool m_bRTCLatched = false;
+
     if(bootrom != NULL){
         loadBootRom(bootrom);
     }
@@ -275,6 +284,16 @@ void GBCart::postCartLoadSetup(){
     }
 }
     
+void GBCart::updateRTC(){
+    //TODO - find platform agnostic way to get current time.
+    //TODO - figure out how to calculate day counter from system time. Possible?
+    std::cout << "Unimplemented update MBC RTC!" << std::endl;
+    if(m_bRTCLatched){
+        //RTC is latched, don't update. 
+        return;
+    }
+}
+
 uint8_t GBCart::read_MBC(uint16_t address){
     uint8_t toReturn = 0xFF;
 
@@ -317,13 +336,41 @@ uint8_t GBCart::read_MBC(uint16_t address){
             if((m_MBCType != MBC_1) || (m_bMBC1RomRamSelect)){
                 realRamBank = m_cartRamBank;
             }
-            
-            int realAddr = ((EXTRAM_END - EXTRAM_START) * realRamBank) + (address - EXTRAM_START);
-            toReturn = m_cartRam[realAddr];
 
-            //MBC2 uses 4 bit values. Need to mask off upper bits
-            if(m_MBCType == MBC_2){
-                toReturn &= 0x0F;
+            //MBC3 uses ram bank to controll access to real time clock registers.
+            if((m_MBCType == MBC_3) && (realRamBank >= RTC_BANK_SECONDS)){
+                //Update real time clock registers
+                updateRTC();
+
+                //Fetch the appropriate value
+                switch(realRamBank){
+                    case RTC_BANK_SECONDS:
+                        toReturn = m_rtcSeconds;
+                        break;
+                    case RTC_BANK_MINUTES:
+                        toReturn =  m_rtcMinutes;
+                        break;
+                    case RTC_BANK_HOURS:
+                        toReturn = m_rtcHours;
+                        break;
+                    case RTC_BANK_DAYCOUNTER:
+                        toReturn = m_rtcLowerDayCounter;
+                        break;
+                    case RTC_BANK_FLAGS:
+                        toReturn = m_rtcFlags;
+                        break;
+                     default:
+                        std::cout << "Unrecognized MBC3 RTC register " << +realRamBank << std::endl;
+                        break;
+                }
+            } else {
+                int realAddr = ((EXTRAM_END - EXTRAM_START) * realRamBank) + (address - EXTRAM_START);
+                toReturn = m_cartRam[realAddr];
+
+                //MBC2 uses 4 bit values. Need to mask off upper bits
+                if(m_MBCType == MBC_2){
+                    toReturn &= 0x0F;
+                }
             }
         }
     } 
@@ -384,6 +431,30 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
         std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
         std::cout << "Writing ram bank register" << std::endl;
+ 
+        //TODO - REWRITE OF BELOW IN PROGRESS        
+        switch(m_MBCType){
+            case MBC_1:
+                //In MBC1, this can set both the rom or ram bank
+                if(m_bMBC1RomRamSelect){
+                    m_cartRamBank = val & 0x03;
+                } else {
+                    m_cartRomBank = (m_cartRomBank & 0x1F) | (0x03 & (val << 5));
+                }
+                break;
+            case MBC_2:
+                std::cout << "Attempt to set ram bank on MBC2!" << std::endl;
+                break;
+            case MBC_3:
+            case MBC_5:
+                //MBC3 only has banks 0-3, but also can be set to values 08-0C for RTC access
+                //MBC5 uses the full 4 bit value of the bank.
+                m_cartRamBank = val & 0x0F;
+                break;
+        }
+
+        /*
+        //Rewrite below section in terms of switch statement to account for MBC3 RTC
         //If MBC1, ram bank should only be adjusted if in ram select mode
         if((m_MBCType != MBC_1) || (m_bMBC1RomRamSelect)){
             //MBC1 and MBC3 use 2-bit bank select, MBC5 uses 4-bit. MBC2 does not use ram banks.
@@ -391,10 +462,10 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
             std::cout << "Ram bank is now " << +m_cartRamBank << std::endl;
         } else if (m_MBCType == MBC_1)/*
         //On MBC1, need to update upper rom bank bits to match.
-        if(m_MBCType == MBC_1){*/{
+        if(m_MBCType == MBC_1){*//*{
             m_cartRomBank = (m_cartRomBank & 0x1F) | (0x03 & (val << 5));
             std::cout << "MBC1 with RomRam select on Ram. Instead, switching cart bank to " << +m_cartRomBank << std::endl;
-        }
+        }*/
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         if(m_MBCType == MBC_1){
@@ -402,7 +473,15 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
             m_bMBC1RomRamSelect = (val & 0x01) > 0;      
             std::cout << "Attempt to set ROM or RAM write mode! Current mode: " << (m_bMBC1RomRamSelect ? "RAM" : "ROM")  << std::endl;
         } else if (m_MBCType == MBC_3) {
-            //TODO - RTC Time Latch
+            //RTC Latch is toggled in this register if a write of 0 is followed by a write of 1.
+            static uint8_t lastVal = 0xFF;
+            if((lastVal == 0x00) && (val == 0x01)){
+                //Since RTC is latched on access, need to update value first.
+                updateRTC();
+                m_bRTCLatched = !m_bRTCLatched;
+
+            }
+            lastVal = val; 
         }
     } else {
         std::cout << "Attempting to write to an unsupported address" << std::endl;
