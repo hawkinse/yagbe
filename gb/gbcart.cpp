@@ -196,7 +196,7 @@ void GBCart::postCartLoadSetup(){
             m_cartRamLength = 32768;
             break;
         default:
-            std::cout << "Unable to determine cart ram quantity" << std::endl;
+            std::cout << "Unable to determine cart ram quantity. Defaulting to max 128k" << std::endl;
         case RAM_128K:
             m_cartRamLength = 131072;
             break;
@@ -217,23 +217,17 @@ void GBCart::postCartLoadSetup(){
     switch(m_CartType){
         case ROM_ONLY:
             std::cout << "Cart is a ROM-only cart" << std::endl;
-            //cartRead = &GBCart::read_NoMBC;
-            //cartWrite = &GBCart::write_NoMBC;
             m_MBCType = MBC_NONE;
             break;
         case ROM_MBC1:
         case ROM_MBC1_RAM:
         case ROM_MBC1_RAM_BATT:
             std::cout << "Cart is MBC1" << std::endl;
-            //cartRead = &GBCart::read_MBC1;
-            //cartWrite = &GBCart::write_MBC1;
             m_MBCType = MBC_1;
             break;
         case ROM_MBC2:
         case ROM_MBC2_BATT:
             std::cout << "Cart is MBC2" << std::endl;
-            //cartRead = &GBCart::read_MBC2;
-            //cartWrite = &GBCart::write_MBC2;
             ///MBC2 has a fixed ram size, set here.
             m_cartRamLength = 512;
             delete m_cartRam;
@@ -256,12 +250,11 @@ void GBCart::postCartLoadSetup(){
         case ROM_MBC5_RUMB_SRAM:
         case ROM_MBC5_RUMB_SRAM_BATT:
             std::cout << "Cart is MBC5" << std::endl;
-            //cartRead = &GBCart::read_MBC5;
-            //cartWrite = &GBCart::write_MBC5;
             m_MBCType = MBC_5;
-            //break;
-            std::cout << "Until MBC5 is properly implemented, treating as MBC3 via fallthrough" << std::endl;
+            break;
         default:
+            std::cout << "Unable to determine cart type. Treating as MBC1" << std::endl;
+            m_MBCType = MBC_1;
             break;
     }
     
@@ -311,15 +304,10 @@ uint8_t GBCart::read_MBC(uint16_t address){
         }
         
         //TODO - check if in bounds of cart and wrap bank around until it fits!
+        // This will need to be done on write, not on read?
         //https://github.com/Gekkio/mooneye-gb/blob/master/docs/accuracy.markdown
         int realAddr = (address - ROM_BANK_N_START) + (realRomBank * ROM_BANK_N_START);
         toReturn = m_cartRom[realAddr];
-        /*
-        if(realAddr >= m_cartDataLength){
-            std::cout << "Attempt to read cart rom at address " << +realAddr << " when cart only has " << +m_cartDataLength << " bytes!" << std::endl;
-        } else {
-            toReturn = m_cartRom[realAddr];
-        }*/
     } else if (address >= EXTRAM_START && address <= EXTRAM_END){
         if(m_bCartRamEnabled){
             std::cout << "MBC1 ram read" << std::endl;
@@ -331,17 +319,11 @@ uint8_t GBCart::read_MBC(uint16_t address){
             }
             
             int realAddr = ((EXTRAM_END - EXTRAM_START) * realRamBank) + (address - EXTRAM_START);
+            toReturn = m_cartRam[realAddr];
 
-            //This check makes no sense... why are you comaring the ADDRESS to the RAM LENGTH? These don't directly relate!
-            if(false && realAddr >= m_cartRamLength){
-                std::cout << "Attempt to read cart ram at address " << +address << " when cart only has " << +m_cartRamLength << " bytes!" << std::endl;
-            } else {
-                toReturn = m_cartRam[realAddr];
-
-                //MBC2 uses 4 bit values. Need to mask off upper bits
-                if(m_MBCType == MBC_2){
-                    toReturn &= 0x0F;
-                }
+            //MBC2 uses 4 bit values. Need to mask off upper bits
+            if(m_MBCType == MBC_2){
+                toReturn &= 0x0F;
             }
         }
     } 
