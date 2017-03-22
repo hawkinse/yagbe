@@ -87,10 +87,6 @@ class GBCart{
     char* m_romFileName;
     char* m_saveFileName;
     
-    //Function pointers to hold the actual read and write functions
-    uint8_t (GBCart::*cartRead)(uint16_t);
-    void (GBCart::*cartWrite)(uint16_t, uint8_t);
-    
     void loadCartFile(char* filename);
     void loadBootRom(char* filename);
     
@@ -100,22 +96,8 @@ class GBCart{
     void postCartLoadSetup();
     void loadCartArray(uint8_t* cart, uint16_t size);    
     
-    //void switchRomBank(uint8_t bank);
-    
-    uint8_t read_NoMBC(uint16_t address);
-    void write_NoMBC(uint16_t address, uint8_t val);
-    
-    uint8_t read_MBC1(uint16_t address);
-    void write_MBC1(uint16_t address, uint8_t val);
-    
-    uint8_t read_MBC2(uint16_t address);
-    void write_MBC2(uint16_t address, uint8_t val);
-    
-    uint8_t read_MBC3(uint16_t address);
-    void write_MBC3(uint16_t address, uint8_t val);
-    
-    uint8_t read_MBC5(uint16_t address);
-    void write_MBC5(uint16_t address, uint8_t val);
+    uint8_t read_MBC(uint16_t address);
+    void write_MBC(uint16_t address, uint8_t val);
     
   public:
     enum ROMType{
