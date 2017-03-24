@@ -31,22 +31,18 @@
 #define ADDRESS_MBC1_MODE_SELECT_START     0x6000
 #define ADDRESS_MBC1_MODE_SELECT_END       0x7FFF
 
-#define ADDRESS_MBC2_ROM_BANK_NUM_START ADDRESS_MBC1_ROM_BANK_NUM_START
-#define ADDRESS_MBC2_ROM_BANK_NUM_END   ADDRESS_MBC1_ROM_BANK_NUM_END
-#define ADDRESS_MBC2_RAM_BANK_NUMBER_START ADDRESS_MBC1_RAM_BANK_NUMBER_START
-#define ADDRESS_MBC2_RAM_BANK_NUMBER_END ADDRESS_MBC1_RAM_BANK_NUMBER_END
-
-#define ADDRESS_MBC3_ROM_BANK_NUM_START ADDRESS_MBC1_ROM_BANK_NUM_START
-#define ADDRESS_MBC3_ROM_BANK_NUM_END   ADDRESS_MBC1_ROM_BANK_NUM_END
-#define ADDRESS_MBC3_RAM_BANK_NUMBER_START ADDRESS_MBC1_RAM_BANK_NUMBER_START
-#define ADDRESS_MBC3_RAM_BANK_NUMBER_END ADDRESS_MBC1_RAM_BANK_NUMBER_END
-
-#define ADDRESS_MBC5_ROM_BANK_NUM_START ADDRESS_MBC1_ROM_BANK_NUM_START
-#define ADDRESS_MBC5_ROM_BANK_NUM_END   0x2FFFF
-
-
-#define CART_RAM_VALUE_ENABLED 0x0A
+#define CART_RAM_VALUE_ENABLED        0x0A
 #define CART_MBC1_ROM_RAM_MODE_SELECT 0x01
+
+#define RTC_FLAG_UPPER_DAY 0x00
+#define RTC_FLAG_HALT      0x20
+#define RTC_FLAG_DAY_CARRY 0x40
+
+#define RTC_BANK_SECONDS    0x08
+#define RTC_BANK_MINUTES    0x09
+#define RTC_BANK_HOURS      0x0A
+#define RTC_BANK_DAYCOUNTER 0x0B
+#define RTC_BANK_FLAGS      0x0C
 
 class GBCart{
   private:
@@ -83,7 +79,16 @@ class GBCart{
     bool m_bCartRamEnabled;
     
     bool m_bMBC1RomRamSelect;
-    
+
+    //MBC3 RTC Registers
+    uint8_t m_rtcSeconds;
+    uint8_t m_rtcMinutes;
+    uint8_t m_rtcHours;
+    uint8_t m_rtcLowerDayCounter;
+    uint8_t m_rtcFlags;
+    bool m_bRTCLatched;
+
+
     char* m_romFileName;
     char* m_saveFileName;
     
@@ -96,6 +101,8 @@ class GBCart{
     void postCartLoadSetup();
     void loadCartArray(uint8_t* cart, uint16_t size);    
     
+    void updateRTC();
+
     uint8_t read_MBC(uint16_t address);
     void write_MBC(uint16_t address, uint8_t val);
     
