@@ -3,6 +3,7 @@
 #include <cstring>
 #include <string.h>
 #include <stdio.h>
+#include <ctime>
 
 #include "gbmem.h"
 #include "gbcart.h"
@@ -18,7 +19,6 @@ GBCart::GBCart(char* filename, char* bootrom){
     m_bCartRamEnabled = false;
     m_bMBC1RomRamSelect = false;
 
-    m_bMBC3RamRTCSelect = false;
     uint8_t m_rtcSeconds = 0;
     uint8_t m_rtcMinutes = 0;
     uint8_t m_rtcHours = 0;
@@ -285,13 +285,21 @@ void GBCart::postCartLoadSetup(){
 }
     
 void GBCart::updateRTC(){
-    //TODO - find platform agnostic way to get current time.
     //TODO - figure out how to calculate day counter from system time. Possible?
     std::cout << "Unimplemented update MBC RTC!" << std::endl;
     if(m_bRTCLatched){
         //RTC is latched, don't update. 
         return;
     }
+
+    //Get the current time since epoch
+    std::time_t unixTime = std::time(NULL);
+    std::tm* localTime = std::localtime(&unixTime);
+    m_rtcSeconds = localTime->tm_sec;
+    m_rtcMinutes = localTime->tm_min;
+    m_rtcHours = localTime->tm_hour;
+    std::cout << "Udating clock: " << std::dec << localTime->tm_hour << ":" << localTime->tm_min << ":" << localTime->tm_sec << std::hex << std::endl;
+
 }
 
 uint8_t GBCart::read_MBC(uint16_t address){
@@ -388,8 +396,6 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
             if((address & 0x0100)){
                 bAllowRamToggle = false;
             }
-        } else if (m_MBCType == MBC_3){
-            //TODO - do RTC instead if in RTC mode
         }
 
         if(bAllowRamToggle){
@@ -502,7 +508,7 @@ uint8_t GBCart::read(uint16_t address){
         }
     }
     
-    return toReturn;//(m_bBootRomEnabled ? m_bootRom[address] : m_cartRom[address]);
+    return toReturn;
 }
 
 void GBCart::write(uint16_t address, uint8_t val){
