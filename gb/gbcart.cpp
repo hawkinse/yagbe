@@ -298,7 +298,6 @@ void GBCart::updateRTC(){
     m_rtcSeconds = localTime->tm_sec;
     m_rtcMinutes = localTime->tm_min;
     m_rtcHours = localTime->tm_hour;
-    std::cout << "Udating clock: " << std::dec << localTime->tm_hour << ":" << localTime->tm_min << ":" << localTime->tm_sec << std::hex << std::endl;
 
 }
 
