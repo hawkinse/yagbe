@@ -1,7 +1,11 @@
 #pragma once
 #include <stdlib.h>
 #include <iostream>
+#ifdef _WIN32
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
+#endif
 #include "IInputChecker.h"
 #include "gb/gbpad.h"
 

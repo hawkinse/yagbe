@@ -1,7 +1,11 @@
 #include <stdlib.h>
 #include <iostream>
+//SDL headers are not in an SDL2 directory on Windows
+#ifdef _WIN32
+#include <SDL.h>
+#else
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_mixer.h>
+#endif
 #include "gb/opcodes.h"
 #include "gb/gbz80cpu.h"
 #include "gb/gbmem.h"

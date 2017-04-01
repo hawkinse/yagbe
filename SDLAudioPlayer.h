@@ -3,8 +3,13 @@
 #include <iostream>
 #include <queue>
 #include <cmath>
+#ifdef _WIN32
+#include <SDL.h>
+#include <SDL_audio.h>
+#else
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
+#endif
 #include "IAudioPlayer.h"
 #include "gb/gbaudio.h"
 
