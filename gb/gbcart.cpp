@@ -335,7 +335,7 @@ uint8_t GBCart::read_MBC(uint16_t address){
         toReturn = m_cartRom[realAddr];
     } else if (address >= EXTRAM_START && address <= EXTRAM_END){
         if(m_bCartRamEnabled){
-            std::cout << "MBC1 ram read" << std::endl;
+            if(CONSOLE_OUTPUT_CART) std::cout << "MBC1 ram read" << std::endl;
             uint16_t realRamBank = 0;
  
             //In MBC1, bank switching only occures if more than 8KB memory
@@ -385,7 +385,7 @@ uint8_t GBCart::read_MBC(uint16_t address){
 }
 
 void GBCart::write_MBC(uint16_t address, uint8_t val){
-    std::cout << "Cart write. Address: " << +address << ", value: " << +val << std::endl;
+	if (CONSOLE_OUTPUT_CART) std::cout << "Cart write. Address: " << +address << ", value: " << +val << std::endl;
     
     if(address >= ADDRESS_CART_RAM_ENABLE_START && address <= ADDRESS_CART_RAM_ENABLE_END){
         bool bAllowRamToggle = true;
@@ -400,15 +400,15 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
             m_bCartRamEnabled = ((val & CART_RAM_VALUE_ENABLED) > 0);
         }
 
-        std::cout << "Cart ram is now: " << (m_bCartRamEnabled ? "enabled" : "disabled") << std::endl;
+		if (CONSOLE_OUTPUT_CART) std::cout << "Cart ram is now: " << (m_bCartRamEnabled ? "enabled" : "disabled") << std::endl;
     } else if(address >= EXTRAM_START && address <= EXTRAM_END){
-        std::cout << "Writing to cart ram!" << std::endl;
+		if (CONSOLE_OUTPUT_CART) std::cout << "Writing to cart ram!" << std::endl;
         if(m_bCartRamEnabled){
             int realAddr = ((EXTRAM_END - EXTRAM_START) * m_cartRamBank) + (address - EXTRAM_START);
             m_cartRam[realAddr] = val;
         }
     } else if ((address >= ADDRESS_MBC1_ROM_BANK_NUM_START) && (address <= ADDRESS_MBC1_ROM_BANK_NUM_END)){
-        std::cout << "Writing cart bank register lower bits" << std::endl;
+		if (CONSOLE_OUTPUT_CART) std::cout << "Writing cart bank register lower bits" << std::endl;
         
         //Set rom bank according to bank controller
         if(m_MBCType == MBC_1){
@@ -432,9 +432,9 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
             }
         }
        
-        std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
+		if (CONSOLE_OUTPUT_CART) std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
-        std::cout << "Writing ram bank register" << std::endl;
+		if (CONSOLE_OUTPUT_CART) std::cout << "Writing ram bank register" << std::endl;
  
         //TODO - REWRITE OF BELOW IN PROGRESS        
         switch(m_MBCType){
@@ -473,9 +473,9 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         if(m_MBCType == MBC_1){
-            std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
+			if (CONSOLE_OUTPUT_CART) std::cout << "Attempt to set ROM or RAM write mode!" << std::endl;
             m_bMBC1RomRamSelect = (val & 0x01) > 0;      
-            std::cout << "Attempt to set ROM or RAM write mode! Current mode: " << (m_bMBC1RomRamSelect ? "RAM" : "ROM")  << std::endl;
+			if (CONSOLE_OUTPUT_CART) std::cout << "Attempt to set ROM or RAM write mode! Current mode: " << (m_bMBC1RomRamSelect ? "RAM" : "ROM")  << std::endl;
         } else if (m_MBCType == MBC_3) {
             //RTC Latch is toggled in this register if a write of 0 is followed by a write of 1.
             static uint8_t lastVal = 0xFF;
