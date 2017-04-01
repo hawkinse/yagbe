@@ -187,7 +187,7 @@ class GBLCD{
         void setScrollX(uint8_t val);
         uint8_t getScrollX();
         
-        uint8_t setLY(uint8_t val);
+        void setLY(uint8_t val);
         uint8_t getLY();
         
         void setLYC(uint8_t val);

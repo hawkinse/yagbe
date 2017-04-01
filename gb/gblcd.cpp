@@ -71,7 +71,8 @@ void GBLCD::tick(long long hz){
         }
         
         uint8_t currentSTAT = getSTAT();
-        
+		static int LYIncrementCount = 0;
+
         //If we have time, perform needed logic and advance mode
         if(hz > currentModeTimeLength){            
             switch(currentLCDMode){                
@@ -92,7 +93,6 @@ void GBLCD::tick(long long hz){
                     
                     break;
                 case STAT_MODE1_VBLANK:
-                    static int LYIncrementCount = 0;
                     if(LYIncrementCount == 0){                        
                         incrementLY();
                         
@@ -575,7 +575,7 @@ uint8_t GBLCD::getLY(){
     return m_gbmemory->direct_read(ADDRESS_LY);
 }
 
-uint8_t GBLCD::setLY(uint8_t val){
+void GBLCD::setLY(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_LY, 0);
 }
         
@@ -602,7 +602,7 @@ void GBLCD::setWindowX(uint8_t val){
 
 //Gets the X position, offset by 7px
 uint8_t GBLCD::getWindowX(){
-    m_gbmemory->direct_read(ADDRESS_WX);
+    return m_gbmemory->direct_read(ADDRESS_WX);
 }
         
 void GBLCD::setBGPalette(uint8_t val){
