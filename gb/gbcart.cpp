@@ -111,7 +111,6 @@ void GBCart::loadBootRom(char* filename){
         m_bBootRomEnabled = true;
     } else {
         if(CONSOLE_OUTPUT_ENABLED) std::cout << "Failed to load boot rom" << std::endl;
-        exit(1);
     }
 }
 
