@@ -102,6 +102,7 @@ struct RGBColor{
         r = red;
         g = green;
         b = blue;
+        transparent = false;
     }
     
     bool equals(RGBColor other){
