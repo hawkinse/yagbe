@@ -311,18 +311,15 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 
 void GBLCD::updateWindowLine(RGBColor** frameBuffer){    
     if(getWindowX() >= 0 && getWindowX() < FRAMEBUFFER_WIDTH){
-        if(getWindowY() <= getLY() /*&& getWindowY() < FRAMEBUFFER_HEIGHT*/){
+        if(getWindowY() <= getLY()){
             uint16_t tileLocation = (getLCDC() & LCDC_WINDOW_TILE_MAP_DISPLAY_SELECT) ? BG_TILE_MAP_DISPLAY_1 : BG_TILE_MAP_DISPLAY_0;
             
-            //Set tile location offset. Don't need to worry about X offset since we are always starting from leftmost tile?
+            //Set tile location offset.
             //Even though the Window can only show the size of the framebuffer, the map is still the size of the background map since they share the same location in memory
             tileLocation += ((getLY() - getWindowY()) / TILE_WIDTH * BACKGROUND_MAP_WIDTH);
-            tileLocation += ((getWindowX()) / TILE_WIDTH);
+            tileLocation += ((getWindowX() - 7) / TILE_WIDTH);
             
-            //std::cout << "Window is shown. Tile loc: " << +tileLocation << std::endl;
-            //std::cout << "LY - window Y: " << +(getLY() - getWindowY()) << std::endl;
-            
-            for(int bgPixelX = getWindowX(); bgPixelX < FRAMEBUFFER_WIDTH; bgPixelX += TILE_WIDTH){
+            for(int bgPixelX = getWindowX() - 7; bgPixelX < FRAMEBUFFER_WIDTH; bgPixelX += TILE_WIDTH){
                 uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
                 int tileIndex = 0;
                 uint16_t tilePatternAddress = 0;
@@ -338,6 +335,11 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
                 getTileLine(m_TempTile, tilePatternAddress, tileIndex, (getLY() - getWindowY()) % 8);
                 
                 for(int tileX = 0; tileX < TILE_WIDTH && (tileX + bgPixelX) < FRAMEBUFFER_WIDTH; tileX++){
+                    //Skip over any part of the tile off the left edge of the screen
+                    if((tileX + bgPixelX) < 0){
+                        continue;
+                    }
+                    
                     //Tiles are stored with the columns and rows reversed
                     int colorIndex = m_TempTile[tileX];
             
