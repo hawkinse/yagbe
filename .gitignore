@@ -7,4 +7,8 @@ Makefile
 CMakeCache.txt
 CMakeFiles/*
 cmake_install.cmake
+bin/*
+Win32/*
+yagbe.dir
+
 

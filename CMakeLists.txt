@@ -6,9 +6,15 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${yagbe_SOURCE_DIR}/cmake")
 set(BIN_DIR ${yagbe_SOURCE_DIR}/build)
 set(CMake_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-add_executable(${PROJECT_NAME} main.cpp SDLAudioPlayer.cpp SDLBufferRenderer.cpp SDLInputChecker.cpp gb/gbz80cpu.cpp gb/gbmem.cpp gb/gbcart.cpp gb/gbpad.cpp gb/gblcd.cpp gb/gbaudio.cpp gb/gbserial.cpp)
+file(GLOB MAIN_SOURCE "src/*.h" "src/*.cpp" )
+file(GLOB GB_SOURCE "src/gb/*.h" "src/gb/*.cpp")
+
+source_group ("" FILES ${MAIN_SOURCE})
+source_group ("gb" FILES ${GB_SOURCE})
+
+add_executable(${PROJECT_NAME} ${MAIN_SOURCE} ${GB_SOURCE})
 
 find_package(SDL2 REQUIRED)
 
-INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIR})
+INCLUDE_DIRECTORIES(${SDL2_INCLUDE_DIR} ${PROJECT_INCLUDE_DIR})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${SDL2_LIBRARY})
