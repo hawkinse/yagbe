@@ -30,6 +30,10 @@ GBLCD::GBLCD(GBMem* mem){
         setLCDC(0);
     }   
     
+	//Ensure scroll position is set to upper left on startup.
+	setScrollX(0);
+	setScrollY(0);
+
     //Swap buffers to ensure screen is cleared at startup
     swapBuffers();
 }
