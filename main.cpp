@@ -159,22 +159,48 @@ void mainLoop(){
     }
 }
 
+bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, float &windowScale) {
+	bool bSuccess = true;
+	int argIndex = 1;
+	while (argIndex < argc) {
+		if (strcmp(argv[argIndex], "-b") == 0) {
+			bootRomPath = argv[argIndex + 1];
+		} else if (strcmp(argv[argIndex], "-s") == 0) {
+			windowScale = atof(argv[argIndex + 1]);
+		}
+		else if (strcmp(argv[argIndex], "-r") == 0) {
+			cartRomPath = argv[argIndex + 1];
+		}
+		else {
+			std::cout << "Unrecognized argument " << argv[argIndex] << std::endl;
+			bSuccess = false;
+			break;
+		}
+
+		argIndex += 2;
+	}
+
+	return bSuccess;
+}
+
 int main(int argc, char** argv){
-  //Initialize gameboy with cartridge specified in argv
-  if(argc > 1){
-      cartRomPath = argv[1];
-      if(ENABLE_BOOTROM){
-        init_gb(cartRomPath, "bootrom.bin");
-      } else {
-        init_gb(cartRomPath);
-      }
-  } else {
-      std::cout << "Must include path to cart file as argument" << std::endl;
-      exit(1);
+  char* bootRomPath = nullptr;
+  char* cartRomPath = nullptr;
+  float windowScale = 1.0f;
+
+  bool bArgsValid = parseArgs(argc, argv, bootRomPath, cartRomPath, windowScale);
+
+  //If there is a cart path on the command line, initialize GB components.
+  if (bArgsValid && (cartRomPath != nullptr)) {
+	  init_gb(cartRomPath, (ENABLE_BOOTROM ? bootRomPath : nullptr));
+  }
+  else {
+	  std::cout << "No cart specified or arguments invalid!" << std::endl;
+	  exit(1);
   }
   
-  //Initialize SDL with no window scaling and background map enabled
-  init_sdl(2.0f, false);
+  //Initialize SDL
+  init_sdl(windowScale, false);
   
   //Connect SDL to the gameboy emulator display
   m_MainBufferRenderer = new SDLBufferRenderer(m_SDLWindowRenderer);
