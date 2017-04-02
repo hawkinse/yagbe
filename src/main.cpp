@@ -184,15 +184,15 @@ bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, fl
 }
 
 int main(int argc, char** argv){
-  char* bootRomPath = nullptr;
-  char* cartRomPath = nullptr;
+  char* bootRomPath = NULL;
+  char* cartRomPath = NULL;
   float windowScale = 1.0f;
 
   bool bArgsValid = parseArgs(argc, argv, bootRomPath, cartRomPath, windowScale);
 
   //If there is a cart path on the command line, initialize GB components.
-  if (bArgsValid && (cartRomPath != nullptr)) {
-	  init_gb(cartRomPath, (ENABLE_BOOTROM ? bootRomPath : nullptr));
+  if (bArgsValid && (cartRomPath != NULL)) {
+	  init_gb(cartRomPath, (ENABLE_BOOTROM ? bootRomPath : NULL));
   }
   else {
 	  std::cout << "No cart specified or arguments invalid!" << std::endl;
