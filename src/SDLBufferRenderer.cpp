@@ -60,6 +60,9 @@ void SDLBufferRenderer::render(){
 		scaledOutputRect.x = (int)((renderWidth/ 2.0f) - (scaledOutputRect.w / 2.0f));
 	}
 
+    //Clear renderer before copy. Otherwise, artifacts might persist on Linux
+    SDL_RenderClear(m_Renderer);
+
     if(SDL_RenderCopy(m_Renderer, m_OutputTexture, NULL, &scaledOutputRect) < 0){
         std::cout << "Failed to copy texture to video renderer: " << SDL_GetError();
     }
