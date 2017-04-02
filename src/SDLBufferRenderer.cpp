@@ -41,7 +41,26 @@ void SDLBufferRenderer::update(RGBColor** buffer, int width, int height){
 void SDLBufferRenderer::render(){   
     SDL_UnlockTexture(m_OutputTexture);
     
-    if(SDL_RenderCopy(m_Renderer, m_OutputTexture, NULL, NULL) < 0){
+	int renderWidth = 0;
+	int renderHeight = 0;
+	SDL_GetRendererOutputSize(m_Renderer, &renderWidth, &renderHeight);
+
+	//Set up a rectangle scaled and positioned so that frame fills window while preserving aspect ratio
+	SDL_Rect scaledOutputRect;
+	scaledOutputRect.x = 0;
+	scaledOutputRect.y = 0;
+	if (renderWidth < renderHeight) {
+		scaledOutputRect.w = renderWidth;
+		scaledOutputRect.h = (int)((float)renderWidth * ((float)FRAMEBUFFER_HEIGHT / FRAMEBUFFER_WIDTH));
+		scaledOutputRect.y = (int)((renderHeight / 2.0f) - (scaledOutputRect.h / 2.0f));
+	}
+	else {
+		scaledOutputRect.h = renderHeight;
+		scaledOutputRect.w = (int)((float)renderHeight * ((float)FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT));
+		scaledOutputRect.x = (int)((renderWidth/ 2.0f) - (scaledOutputRect.w / 2.0f));
+	}
+
+    if(SDL_RenderCopy(m_Renderer, m_OutputTexture, NULL, &scaledOutputRect) < 0){
         std::cout << "Failed to copy texture to video renderer: " << SDL_GetError();
     }
     SDL_RenderPresent(m_Renderer);
