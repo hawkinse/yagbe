@@ -53,8 +53,7 @@ void SDLBufferRenderer::render(){
 		scaledOutputRect.w = renderWidth;
 		scaledOutputRect.h = (int)((float)renderWidth * ((float)FRAMEBUFFER_HEIGHT / FRAMEBUFFER_WIDTH));
 		scaledOutputRect.y = (int)((renderHeight / 2.0f) - (scaledOutputRect.h / 2.0f));
-	}
-	else {
+	} else {
 		scaledOutputRect.h = renderHeight;
 		scaledOutputRect.w = (int)((float)renderHeight * ((float)FRAMEBUFFER_WIDTH / FRAMEBUFFER_HEIGHT));
 		scaledOutputRect.x = (int)((renderWidth/ 2.0f) - (scaledOutputRect.w / 2.0f));
