@@ -56,15 +56,14 @@ void GBLCD::tick(long long hz){
     bool bTimeForTasks = true; //TODO - rename this to something more elegant
     while(bTimeForTasks){
         //Figure out how much time we need to execute the mode
-        int currentModeTimeLength = 0;
-        
+        int currentModeTimeLength = 0;        
         
         switch(currentLCDMode){
             case STAT_MODE0_HBLANK:
                 currentModeTimeLength = CYCLES_LCD_MODE0;
                 break;
             case STAT_MODE1_VBLANK:
-                currentModeTimeLength = CYCLES_VBLANK_LYINCREMENT_INTERVAL/*CYCLES_VBLANK_LENGTH*/;
+                currentModeTimeLength = CYCLES_VBLANK_LYINCREMENT_INTERVAL;
                 break;
             case STAT_MODE2_OAM:
                 currentModeTimeLength = CYCLES_LCD_MODE2;
@@ -389,8 +388,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
         uint8_t palette = (spriteFlags & SPRITE_ATTRIBUTE_PALLETE) ? getSpritePalette1() : getSpritePalette0();
         
         //Check if sprite is actually on screen
-        //TODO - get a real fix for xPos being off
-        if((realXPos > /*0*/-7 && realXPos < 168)){
+        if((realXPos > -7 && realXPos < 168)){
             if((realYPos >= getLY() - (bDoubleHeight ? 15 : 7) && realYPos <= getLY())){
                 int tileYLine = (getLY() - realYPos) % (TILE_HEIGHT * 2);
                 int tileYSpriteLine = (getLY() - realYPos) % TILE_HEIGHT;
@@ -406,8 +404,6 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                 getTileLine(m_TempTile, TILE_PATTERN_TABLE_1, spriteTileNum, tileYSpriteLine);
                 
                 for(int tileX = 0; tileX < TILE_WIDTH; tileX++){
-                    //std::cout << "Rendering sprite pixel" << std::endl;
-                    //std::cin.get();
                     int renderPosX = realXPos + tileX;
                     if(renderPosX > 0 && renderPosX < FRAMEBUFFER_WIDTH){
                         RGBColor pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
@@ -471,7 +467,6 @@ void GBLCD::getTileLine(uint8_t* out, uint16_t tilePatternAddress, int tileIndex
     }
 }
 
-//TODO - convert this to uint8_t** format
 //Gets the full 8x8 tile at the given index
 void GBLCD::getTile(uint8_t** out, uint16_t tilePatternAddress, int tileIndex){
     //Create an array with axis swapped, so we can directly use getTileLine
@@ -508,7 +503,6 @@ void GBLCD::setMainRenderer(IRenderer* renderer){
     m_displayRenderer = renderer;
 }
 
-//void write();
 void GBLCD::setLCDC(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_LCDC, val);
     
@@ -548,10 +542,13 @@ void GBLCD::setSTAT(uint8_t val){
     //Bottom three bits are read-only
     val &= 0xF8;
     uint8_t currentSTAT = getSTAT();
+
     //Remove all but bottom three bits from STAT
     currentSTAT &= 0x07;
+    
     //Combine with val
     currentSTAT |= val;
+    
     m_gbmemory->direct_write(ADDRESS_STAT, currentSTAT);
 }
 

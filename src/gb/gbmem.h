@@ -129,7 +129,6 @@ class GBMem{
     GBSerial* m_gbserial;
     
     bool m_bVRamBank;
-    uint8_t m_ExtRamBank; //TODO - move to cart?
     uint8_t m_WRamBank;
     
     //Timer and Divider "registers"
@@ -138,18 +137,12 @@ class GBMem{
     uint8_t m_RegisterTMA;
     uint8_t m_RegisterTAC;
     
-    //TODO - split array into separate arrays for each section of memory!
     uint8_t m_mem[0xFFFF]; //Entire memory map.
     uint8_t* m_extRamExtraBanks; //Stores all banks of extram
     uint8_t* m_wRamBanks; //Only stores banks 1-7, since bank 0 is constant 
     
     void switch_bank_vram();
-    void switch_bank_extram(uint8_t bank);
     void switch_bank_wram(uint8_t bank);
-    
-    //Special read/write funcs go here
-    void write_unusable(uint16_t address);
-    void read_unusable(uint16_t address);
     
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);

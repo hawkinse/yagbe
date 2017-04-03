@@ -73,7 +73,6 @@ void GBMem::increment_RegisterTIMA(long long hz){
     //Increment the TIMA register
     while(hz >= TAC_Clock){
         //Check if we need to fire the timer interrupt
-        //if(((m_mem[ADDRESS_TIMA] + 1) & 0xFF) < m_mem[ADDRESS_TIMA]){
         if((m_mem[ADDRESS_TIMA] + 1) > 0xFF){
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "TIMA register rolled over. Setting interrupt flag" << std::endl;
             
