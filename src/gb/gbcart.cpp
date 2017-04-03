@@ -45,7 +45,6 @@ GBCart::GBCart(char* filename, char* bootrom){
 
 GBCart:: GBCart(uint8_t* cart, uint16_t size){
     loadCartArray(cart, size);
-    //TODO - generate save file name based on cart header title
     m_saveFileName = m_CartTitle;
 }
 
@@ -91,7 +90,6 @@ void GBCart::loadCartFile(char* filename){
 }
 
 void GBCart::loadBootRom(char* filename){
-    //Todo - detect if given bootrom file is even present
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "Loading boot rom " << filename << std::endl;
     std::ifstream bootRom (filename, std::ios_base::binary);
     if(bootRom.is_open()){
@@ -162,7 +160,6 @@ void GBCart::saveCartRam(){
     
 void GBCart::postCartLoadSetup(){
     //Set the variable rom bank to 1
-    //switchRomBank(1);
     m_cartRomBank = 1;
     
     //Set game title
@@ -285,7 +282,6 @@ void GBCart::postCartLoadSetup(){
     
 void GBCart::updateRTC(){
     //TODO - figure out how to calculate day counter from system time. Possible?
-    std::cout << "Unimplemented update MBC RTC!" << std::endl;
     if(m_bRTCLatched){
         //RTC is latched, don't update. 
         return;
@@ -435,8 +431,7 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
 		if (CONSOLE_OUTPUT_CART) std::cout << "Rom bank is now " << +m_cartRomBank << std::endl;
     } else if(address >= ADDRESS_MBC1_RAM_BANK_NUMBER_START && address <= ADDRESS_MBC1_RAM_BANK_NUMBER_END){
 		if (CONSOLE_OUTPUT_CART) std::cout << "Writing ram bank register" << std::endl;
- 
-        //TODO - REWRITE OF BELOW IN PROGRESS        
+  
         switch(m_MBCType){
             case MBC_1:
                 //In MBC1, this can set both the rom or ram bank
@@ -456,20 +451,6 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
                 m_cartRamBank = val & 0x0F;
                 break;
         }
-
-        /*
-        //Rewrite below section in terms of switch statement to account for MBC3 RTC
-        //If MBC1, ram bank should only be adjusted if in ram select mode
-        if((m_MBCType != MBC_1) || (m_bMBC1RomRamSelect)){
-            //MBC1 and MBC3 use 2-bit bank select, MBC5 uses 4-bit. MBC2 does not use ram banks.
-            m_cartRamBank = (m_MBCType == MBC_5) ? (val & 0x0F) : (val & 0x03);
-            std::cout << "Ram bank is now " << +m_cartRamBank << std::endl;
-        } else if (m_MBCType == MBC_1)/*
-        //On MBC1, need to update upper rom bank bits to match.
-        if(m_MBCType == MBC_1){*//*{
-            m_cartRomBank = (m_cartRomBank & 0x1F) | (0x03 & (val << 5));
-            std::cout << "MBC1 with RomRam select on Ram. Instead, switching cart bank to " << +m_cartRomBank << std::endl;
-        }*/
         
     } else if (address >= ADDRESS_MBC1_MODE_SELECT_START && address <= ADDRESS_MBC1_MODE_SELECT_END){
         if(m_MBCType == MBC_1){
@@ -540,7 +521,6 @@ std::string GBCart::getCartridgeTitle(){
 }
 
 void GBCart::printCartInfo(){
-    //TODO - change this to use global variables instead of directly grbabing values out of array.
     std::cout << std::hex;
     std::cout << "Game: " << m_CartTitle << "\n";
     std::cout << "Targets GBC: " << m_bIsGBC << "\n";
