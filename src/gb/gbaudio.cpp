@@ -14,32 +14,23 @@ GBAudio::~GBAudio(){
 
 void GBAudio::tick(long long hz){
     static long long rollover = 0;
-    //std::cout << "Unimplemented audio tick " << +hz << " cycles" << std::endl;
     uint8_t* tempBuffer = new uint8_t[hz];
     uint8_t* mixedBuffer = new uint8_t[hz];
     uint16_t currentNote = 0;
     uint16_t mixedNote = 0;
 
-    //memset(tempBuffer, 0, hz);
-    //smemset(mixedBuffer, 0, hz);
-
     currentNote = tickSquare1(tempBuffer, hz);
-    //m_player->mixNotes(tempBuffer, mixedBuffer, hz);
     m_player->mixNotes(&currentNote, &mixedNote, 1);
 
     currentNote = tickSquare2(tempBuffer, hz);
-    //m_player->mixNotes(tempBuffer, mixedBuffer, hz);
     m_player->mixNotes(&currentNote, &mixedNote, 1);
 
     currentNote = tickWave(tempBuffer, hz);
-    //m_player->mixNotes(tempBuffer, mixedBuffer, hz);
     m_player->mixNotes(&currentNote, &mixedNote, 1);
     
     currentNote = tickNoise(tempBuffer, hz);
-    //m_player->mixNotes(tempBuffer, mixedBuffer, hz);
     m_player->mixNotes(&currentNote, &mixedNote, 1);
 
-    //m_player->addNotes(mixedBuffer, hz);
     uint32_t skip = (CLOCK_GB * MHZ_TO_HZ) / m_player->getSampleRate() / 2;
     if ((rollover + hz) >= skip) {
         m_player->addNote(mixedNote*500, 1);
@@ -91,21 +82,11 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
         //and then making notes for the remainder of the hz fixes stutter.
 
         if (hz >= m_square1FrequencyTimer) {
-            //hz -= m_square2FrequencyTimer;
-            // m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
-            //nextDutyIndex = (nextDutyIndex + 1) % 8;
-            //Might be overcomplicating things with time! Try with just notes, and stretch according to sample buffer size!
-            //This might work since we KNOW that in the SDL side, a second of data should fill a 44Khz buffer!
-
-            //According to reddit post here, this is actually a sample a hz!
-            //https://www.reddit.com/r/EmuDev/comments/5gkwi5/gb_apu_sound_emulation/
-            //Recommends to cut down to only gathering a sample every 95 hz, from CPU_CLOCK/Playback Frequency
+           
             while (hz >= m_square1FrequencyTimer && m_square1FrequencyTimer >= 0) {
                 nextDutyIndex = (nextDutyIndex + 1) % 8;
                 note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR11() >> 6) & 0x03][nextDutyIndex];
-                //Not sure why volume is so quiet...
                 note *= m_square1Volume;
-                //m_player->addNote(note, m_square2FrequencyTimer);
                 memset(buffer, note, m_square1FrequencyTimer);
                 buffer += m_square1FrequencyTimer;
 
@@ -120,13 +101,9 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
         }
 
         note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR11() >> 6) & 0x03][nextDutyIndex];
-        //Not sure why volume is so quiet...
         note *= m_square1Volume;
 
-    } else {
-        //Still need to output a 0 when channel disabled!
-        //m_player->addNote(0, 1);
-    }
+    } 
 
     if (true || hz < 100000) {
         //m_player->addNote(note, hz);
@@ -137,7 +114,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
 }
 
 uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
-    //CODE IS UNTESTED, LIKELY DOES NOT WORK, DO NOT ASSUME OK TO KEEP!
     //Two counters: Length and frequency.
     static long long frequencyRollover = 0;
     static long long lengthRollover = 0;
@@ -168,28 +144,14 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
         bChannelEnabled = false;
     }
 
-    //Stutters and low sounds may be due to inner hz >= m_square2FrequencyTimer check being wrong, ignoring good samples
-    //Only getting a small portion of what we want?
     uint8_t note = 0;
     if (bChannelEnabled) {
-        //TODO - see if making this a loop and continually adding notes, 
-        //and then making notes for the remainder of the hz fixes stutter.
-
         if (hz >= m_square2FrequencyTimer) {
-            //hz -= m_square2FrequencyTimer;
-           // m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
-            //nextDutyIndex = (nextDutyIndex + 1) % 8;
-            //Might be overcomplicating things with time! Try with just notes, and stretch according to sample buffer size!
-            //This might work since we KNOW that in the SDL side, a second of data should fill a 44Khz buffer!
-
-            //According to reddit post here, this is actually a sample a hz!
-            //https://www.reddit.com/r/EmuDev/comments/5gkwi5/gb_apu_sound_emulation/
-            //Recommends to cut down to only gathering a sample every 95 hz, from CPU_CLOCK/Playback Frequency
+           
             while (hz >= m_square2FrequencyTimer && m_square2FrequencyTimer >= 0) {
                 nextDutyIndex = (nextDutyIndex + 1) % 8;
                 note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex];
                 note *= m_square2Volume;
-                //m_player->addNote(note, m_square2FrequencyTimer);
                 memset(buffer, note, m_square2FrequencyTimer);
                 buffer += m_square2FrequencyTimer;
 
@@ -256,29 +218,12 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
         bChannelEnabled = false;
     }
 
-    //Stutters and low sounds may be due to inner hz >= m_square2FrequencyTimer check being wrong, ignoring good samples
-    //Only getting a small portion of what we want?
     uint8_t note = 0;
     //Need to check NR30 for if DAC is enabled
     if (bChannelEnabled && getNR30()) {
-        //TODO - see if making this a loop and continually adding notes, 
-        //and then making notes for the remainder of the hz fixes stutter.
 
         if (hz >= m_waveFrequencyTimer) {
-            //hz -= m_square2FrequencyTimer;
-            // m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
-            //nextDutyIndex = (nextDutyIndex + 1) % 8;
-            //Might be overcomplicating things with time! Try with just notes, and stretch according to sample buffer size!
-            //This might work since we KNOW that in the SDL side, a second of data should fill a 44Khz buffer!
-
-            //According to reddit post here, this is actually a sample a hz!
-            //https://www.reddit.com/r/EmuDev/comments/5gkwi5/gb_apu_sound_emulation/
-            //Recommends to cut down to only gathering a sample every 95 hz, from CPU_CLOCK/Playback Frequency
             while (hz >= m_waveFrequencyTimer && m_waveFrequencyTimer >= 0) {
-                /*
-                nextDutyIndex = (nextDutyIndex + 1) % 8;
-                note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR11() >> 6) & 0x03][nextDutyIndex];
-                */
                 if (bFirstByteSample) {
                     bFirstByteSample = false;
                 } else {
@@ -304,8 +249,6 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
                         std::cout << "Invalid wave channel volume!" << std::endl;
                 }
 
-                //Not sure why volume is so loud...
-                //note /= 20;
                 memset(buffer, note, m_waveFrequencyTimer);
                 buffer += m_waveFrequencyTimer;
 
@@ -335,14 +278,10 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
         default:
             std::cout << "Invalid wave channel volume!" << std::endl;
         }
-        
-        //Not sure why note is so loud...
-        //note /= 20;
 
     }
 
     if (true || hz < 100000) {
-        //m_player->addNote(note, hz);
         memset(buffer, note, hz);
     }
 
@@ -423,19 +362,9 @@ uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
         bChannelEnabled = false;
     }
 
-    //Stutters and low sounds may be due to inner hz >= m_square2FrequencyTimer check being wrong, ignoring good samples
-    //Only getting a small portion of what we want?
     uint8_t note = 0;
     if (bChannelEnabled && m_noiseTriggered) {
-        //TODO - see if making this a loop and continually adding notes, 
-        //and then making notes for the remainder of the hz fixes stutter.
-        
-        //Is noise frequency even teh right way to describe this?
         if (hz >= m_noiseFrequencyTimer) {
-
-            //According to reddit post here, this is actually a sample a hz!
-            //https://www.reddit.com/r/EmuDev/comments/5gkwi5/gb_apu_sound_emulation/
-            //Recommends to cut down to only gathering a sample every 95 hz, from CPU_CLOCK/Playback Frequency
             while (hz >= m_noiseFrequencyTimer && m_noiseFrequencyTimer >= 0) {
                 uint16_t xorResult = ((m_lfsr & 0x01) ^ ((m_lfsr & 0x02) >> 1));
                 m_lfsr = (m_lfsr >> 1) | (xorResult << 14);
@@ -737,18 +666,8 @@ void GBAudio::setNR34(uint8_t val){
         m_waveFrequency = (((uint16_t)val & 0x0007) << 8) | (m_waveFrequency & 0x00FF);
         m_waveFrequencyTimer = (2048 - m_square2Frequency) * 2;
 
-        //Not applicable to wave channel
-        //Load volume envelope timer with period (from NR22?)
-        //m_square2VolumeEnvelopeTimer = getNR22() & CHANNEL_PERIOD;//m_square2FrequencyTimer;
-
-        //Not applicable to wave channel
-        //Load channel volume from NR22
-        //m_square2Volume = (getNR22() & CHANNEL_VOLUME_START) >> 4;
-
-        //Other channel specific stuff... none to worry about with Square 2.
 
         //Check if channel DAC is off and disable self again if so.
-        //DAC is checked using upper 5 bits of NR22
         if (!getNR30()) {
             m_waveTriggered = false;
             val &= ~CHANNEL_TRIGGER;
@@ -808,19 +727,13 @@ void GBAudio::setNR44(uint8_t val){
             m_noiseLengthCounter = 64;
         }
 
-        //Load frequency timer with period (from NR22?)
-        //m_square2FrequencyTimer = getNR22() & CHANNEL_PERIOD;
         m_noiseFrequencyTimer = getNoiseDivisor() << ((getNR43() & 0xF0) >> 4);
 
-        //Load volume envelope timer with period (from NR22?)
-        //m_square2VolumeEnvelopeTimer = getNR22() & CHANNEL_PERIOD;//m_square2FrequencyTimer;
 
-                                                                  //Load channel volume from NR22
         m_noiseVolume = (getNR42() & CHANNEL_VOLUME_START) >> 4;
 
         m_noiseVolumeEnvelopeCounter = 64;
         m_noiseEnvelopePeriod = getNR42() & 0x07;
-        //Other channel specific stuff... none to worry about with Square 2.
         m_lfsr = 0x7FFF;
 
         m_noiseLengthEnable = (val & CHANNEL_LENGTH_ENABLE) > 0;
@@ -832,7 +745,6 @@ void GBAudio::setNR44(uint8_t val){
             val &= ~CHANNEL_TRIGGER;
             m_noiseFrequencyTimer = 0;
             m_noiseVolume = 0;
-           // m_square2Triggered = false;
         }
     }
 
