@@ -91,25 +91,61 @@ class GBAudio{
         
         bool m_square1Triggered;
         bool m_square2Triggered;
-        bool m_waveTrriggered;
+        bool m_waveTriggered;
         bool m_noiseTriggered;
         
         //Are globals needed? What happens if a value changes after being triggered?
+        uint8_t m_square1Duty;
+        uint8_t m_square1LengthLoad;
+        uint8_t m_square1StartVolume;
+        uint16_t m_square1Frequency;
+        bool m_square1LengthEnable = false;
+
+        long long m_square1FrequencyTimer = 0;
+        long long m_square1VolumeEnvelopeTimer = 0;
+        long long m_square1LengthCounter = 0;
+        uint8_t m_square1EnvelopePeriod = 0;
+        uint8_t m_square1Volume = 0;
+
         uint8_t m_square2Duty;
         uint8_t m_square2LengthLoad;
         uint8_t m_square2StartVolume;
         uint16_t m_square2Frequency;
-        bool m_square2LengthEnable;
+        bool m_square2LengthEnable = false;
         
-        unsigned long long m_square2FrequencyTimer;
-        unsigned long long m_square2VolumeEnvelopeTimer;
-        unsigned long long m_square2LengthCounter;
-        uint8_t m_square2Volume;
+        long long m_square2FrequencyTimer = 0;
+        long long m_square2VolumeEnvelopeTimer = 0;
+        long long m_square2LengthCounter = 0;
+        uint8_t m_square2Volume = 0;
+        uint8_t m_square2EnvelopePeriod = 0;
+
+        long long m_waveFrequencyTimer = 0;
+        long long m_waveFrequency = 0;
+        long long m_waveLengthCounter = 0;
+        bool m_waveLengthEnable = false;
         
-        void tickSquare1(long long hz);
-        void tickSquare2(long long hz);
-        void tickWave(long long hz);
-        void tickNoise(long long hz);
+
+        long long m_noiseFrequencyTimer = 0;
+        long long m_noiseFrequency = 0;
+        long long m_noiseLengthCounter = 0;
+        long long m_noiseVolumeEnvelopeCounter = 0;
+        uint8_t m_noiseVolume = 0;
+        uint8_t m_noiseEnvelopePeriod = 0;
+        bool m_noiseLengthEnable = false;
+        uint16_t m_lfsr = 0;
+
+        //Current note that should be played for each channel
+        uint8_t m_square1Note = 0;
+        uint8_t m_square2Note = 0;
+        uint8_t m_waveNote = 0;
+        uint8_t m_noiseNote = 0;
+
+        uint16_t tickSquare1(uint8_t* buffer, long long hz);
+        uint16_t tickSquare2(uint8_t* buffer, long long hz);
+        uint16_t tickWave(uint8_t* buffer, long long hz);
+        uint16_t tickNoise(uint8_t* buffer, long long hz);
+
+        uint8_t getNoiseDivisor();
         
     public:
         GBAudio(GBMem* mem);

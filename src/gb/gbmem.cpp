@@ -225,7 +225,49 @@ uint8_t GBMem::read(uint16_t address){
   } else if ((address >= OAM_START) && (address <= OAM_END)){
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Reading Sprite Attribute Table" << std::endl;
       toReturn = m_gblcd->readVRamSpriteAttribute(address);
-  }  else {
+  } else if (address == ADDRESS_NR10) {
+      toReturn = m_gbaudio->getNR10();
+  } else if (address == ADDRESS_NR11) {
+      toReturn = m_gbaudio->getNR11();
+  } else if (address == ADDRESS_NR12) {
+      toReturn = m_gbaudio->getNR12();
+  } else if (address == ADDRESS_NR13) {
+      toReturn = m_gbaudio->getNR13();
+  } else if (address == ADDRESS_NR14) {
+      toReturn = m_gbaudio->getNR14();
+  } else if (address == ADDRESS_NR21) {
+      toReturn = m_gbaudio->getNR21();
+  } else if (address == ADDRESS_NR22) {
+      toReturn = m_gbaudio->getNR22();
+  } else if (address == ADDRESS_NR23) {
+      toReturn = m_gbaudio->getNR23();
+  } else if (address == ADDRESS_NR24) {
+      toReturn = m_gbaudio->getNR24();
+  } else if (address == ADDRESS_NR30) {
+      toReturn = m_gbaudio->getNR30();
+  } else if (address == ADDRESS_NR31) {
+      toReturn = m_gbaudio->getNR31();
+  } else if (address == ADDRESS_NR32) {
+      toReturn = m_gbaudio->getNR32();
+  } else if (address == ADDRESS_NR33) {
+      toReturn = m_gbaudio->getNR33();
+  } else if (address == ADDRESS_NR34) {
+      toReturn = m_gbaudio->getNR34();
+  } else if (address == ADDRESS_NR41) {
+      toReturn = m_gbaudio->getNR41();
+  } else if (address == ADDRESS_NR42) {
+      toReturn = m_gbaudio->getNR42();
+  } else if (address == ADDRESS_NR43) {
+      toReturn = m_gbaudio->getNR43();
+  } else if (address == ADDRESS_NR44) {
+      toReturn = m_gbaudio->getNR44();
+  } else if (address == ADDRESS_NR50) {
+      toReturn = m_gbaudio->getNR50();
+  } else if (address == ADDRESS_NR51) {
+      toReturn = m_gbaudio->getNR51();
+  } else if (address == ADDRESS_NR52) {
+      toReturn = m_gbaudio->getNR52();
+  } else {
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Standard read address " << +address << std::endl;
       bDirectReadAddress = true;
   }

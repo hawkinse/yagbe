@@ -75,7 +75,7 @@ bool init_sdl(float windowScale = 1.0f, bool showBackgroundMap = false){
     bool bSuccess = true;
     
     //Initialize with VSync so we don't waste processor cycles needlessly and burn battery life
-    int RenderFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+    int RenderFlags = SDL_RENDERER_ACCELERATED/* | SDL_RENDERER_PRESENTVSYNC*/;
     
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) >= 0){
 	//Generate window title
@@ -150,6 +150,7 @@ void mainLoop(){
         m_gbcpu->tick((deltaTime > 1.0f) ? 0 : deltaTime * speedMultiplier);
         //m_gbcpu->tick(deltaTime);
         m_MainBufferRenderer->render();
+        m_AudioPlayer->play(deltaTime);
         
         //Update frame counting
         countedSDLFrames++;
