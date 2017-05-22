@@ -52,13 +52,23 @@ void SGBHandler::sendPacketPulse(uint8_t pulse) {
     switch (pulse) {
         case PULSE_RESET:
             std::cout << "SGB Reset pulse recieved" << std::endl;
-            //Reset packet variables.
-            m_currentPacketIndex = 0;
-            m_currentPacketBitIndex = 0;
+            if(!bReceivingPacket){
+                //TODO - proper indent if this fixes things
+                if(m_currentPacketIndex != 0 && m_currentPacketIndex != 16){
+                    std::cout << "Warning - previous packet may have been interrupted!" << std::endl;
+                    std::cout << "Last accessed byte/bit before reset: " << +m_currentPacketIndex << "/" << +m_currentPacketBitIndex << std::endl;
+                }
+            
+                //Reset packet variables.
+                m_currentPacketIndex = 0;
+                m_currentPacketBitIndex = 0;
 
-            //Set receiving packet state to true.
-            bReceivingPacket = true;
-            std::cout << "SGB has started receiving a packet!" << std::endl;
+                //Set receiving packet state to true.
+                bReceivingPacket = true;
+                std::cout << "SGB has started receiving a packet!" << std::endl;
+            } else {
+                std::cout << "Warning - packet interrupted!" << std::endl;
+            }
             break;
         case PULSE_END:
             //End pulse should be ignored.
@@ -66,6 +76,7 @@ void SGBHandler::sendPacketPulse(uint8_t pulse) {
         case PULSE_HIGH:
             //Bit 1
             if (bReceivingPacket) {
+                //std::cout << "Recieved bit 1" << std::endl;
                 appendBit(1);
             }
             break;
@@ -79,6 +90,7 @@ void SGBHandler::sendPacketPulse(uint8_t pulse) {
                     bReceivingPacket = false;
                     std::cout << "SGB has finished receiving a packet" << std::endl;
                 } else {
+                    //std::cout << "Recieved bit 0" << std::endl;
                     appendBit(0);
                 }
             }
@@ -113,6 +125,7 @@ void SGBHandler::colorFrame(RGBColor** frame) {
 }
 
 void SGBHandler::appendBit(uint8_t bit) {
+    //std::cout << "Append bit " << +m_currentPacketBitIndex << " to byte " << +m_currentPacketIndex << std::endl;
     //Add the current bit.
     m_currentPacket[m_currentPacketIndex] = m_currentPacket[m_currentPacketIndex] | (bit << m_currentPacketBitIndex);
 
