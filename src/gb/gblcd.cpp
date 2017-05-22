@@ -3,6 +3,7 @@
 #include <math.h>
 #include "gblcd.h"
 #include "gbmem.h"
+#include "sgbhandler.h"
 #include "bytehelpers.h"
 
 GBLCD::GBLCD(GBMem* mem){
@@ -10,7 +11,8 @@ GBLCD::GBLCD(GBMem* mem){
     
     //Clear pointers so we don't risk pre-existing garbage triggering a buffer update
     m_displayRenderer = NULL;
-    
+    m_sgbhandler = NULL;
+
     m_Frames = 0;
     m_Framebuffer0 = new RGBColor*[FRAMEBUFFER_WIDTH];
     m_Framebuffer1 = new RGBColor*[FRAMEBUFFER_WIDTH];
@@ -197,6 +199,11 @@ void GBLCD::performVBlank(){
     
     //Update background map display
     if(m_displayRenderer){
+        //If SGB handler exists, have it colorize frame
+        if (m_sgbhandler != NULL) {
+            m_sgbhandler->colorFrame(getCompleteFrame());
+        }
+
         m_displayRenderer->update(getCompleteFrame(), FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
     }
     
@@ -501,6 +508,10 @@ void GBLCD::swapBuffers(){
 
 void GBLCD::setMainRenderer(IRenderer* renderer){
     m_displayRenderer = renderer;
+}
+
+void GBLCD::setSGBHandler(SGBHandler* handler) {
+    m_sgbhandler = handler;
 }
 
 void GBLCD::setLCDC(uint8_t val){

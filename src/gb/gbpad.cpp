@@ -1,6 +1,7 @@
 #include <iostream>
 #include "gbpad.h"
 #include "gbmem.h"
+#include "sgbhandler.h"
 
 GBPad::GBPad(GBMem* mem){
     m_gbmemory = mem;
@@ -12,6 +13,7 @@ GBPad::GBPad(GBMem* mem){
     m_bButtonRight = false;
     m_bButtonUp = false;
     m_bButtonDown = false;
+    m_sgbhandler = NULL;
     //Upper two bits are always set.
     m_JoypadRegister = 0x10; //Start with direction buttons set 
 }
@@ -19,8 +21,17 @@ GBPad::GBPad(GBMem* mem){
 GBPad::~GBPad(){
 }
     
+void GBPad::setSGBHandler(SGBHandler* handler) {
+    m_sgbhandler = handler;
+}
+
 void GBPad::write(uint8_t val){
     m_JoypadRegister = val;
+
+    //If SGB is present, send the joypad select value as a pulse.
+    if (m_sgbhandler != NULL) {
+        m_sgbhandler->sendPacketPulse((val >> 4) & 3);
+    }
 }
 
 uint8_t GBPad::read(){

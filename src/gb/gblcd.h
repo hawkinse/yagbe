@@ -84,6 +84,7 @@
 #define TILE_BYTES 16
 
 class GBMem;
+class SGBHandler;
 
 struct RGBColor{
     uint8_t r;
@@ -106,7 +107,7 @@ struct RGBColor{
     }
     
     bool equals(RGBColor other){
-        return (r == other.r && g == other.g && b == other.b);
+        return ((r == other.r) && (g == other.g) && (b == other.b));
     }
 };
 
@@ -114,6 +115,8 @@ class GBLCD{
     private:
         GBMem* m_gbmemory;
         
+        SGBHandler* m_sgbhandler;
+
         //The rendering object for the actual display
         IRenderer* m_displayRenderer;
         
@@ -176,6 +179,8 @@ class GBLCD{
         
         void setMainRenderer(IRenderer* renderer);
         
+        void setSGBHandler(SGBHandler* handler);
+
         //void write();
         void setLCDC(uint8_t val);
         uint8_t getLCDC();

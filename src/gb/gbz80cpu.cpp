@@ -70,7 +70,7 @@ void GBZ80::init(){
     m_gbmemory->write(0xFF23, 0xBF);
     m_gbmemory->write(0xFF24, 0x77);
     m_gbmemory->write(0xFF25, 0xF3);
-    m_gbmemory->write(0xFF26, 0xF1); //0xF0 for super gameboy
+    m_gbmemory->write(0xFF26, 0xF0); //0xF1 for DMG, 0xF0 for super gameboy
     m_gbmemory->write(0xFFFF, 0x00);
     
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "CPU init complete\n\n";

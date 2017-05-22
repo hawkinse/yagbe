@@ -16,11 +16,13 @@
 
 //Forward declaration for GBMem, since GBMem needs a reference to GBPad
 class GBMem;
+class SGBHandler;
 
 class GBPad{
     private:
         GBMem* m_gbmemory;
-        
+        SGBHandler* m_sgbhandler;
+
         //Stores the button state as it exists in gameboy memory
         uint8_t m_JoypadRegister;
         
@@ -39,6 +41,8 @@ class GBPad{
         GBPad(GBMem* mem);
         ~GBPad();    
         
+        void setSGBHandler(SGBHandler* handler);
+
         void write(uint8_t val);
         uint8_t read(); 
         

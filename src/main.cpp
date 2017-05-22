@@ -14,6 +14,7 @@
 #include "gb/gblcd.h"
 #include "gb/gbaudio.h"
 #include "gb/gbserial.h"
+#include "gb/sgbhandler.h"
 #include "SDLBufferRenderer.h"
 #include "SDLAudioPlayer.h"
 #include "SDLInputChecker.h"
@@ -33,6 +34,7 @@ GBAudio* m_gbaudio;
 GBZ80* m_gbcpu;
 GBPad* m_gbpad;
 GBSerial* m_gbserial;
+SGBHandler* m_sgbhandler;
 
 //SDL objects
 SDL_Window* m_SDLWindow;
@@ -58,10 +60,15 @@ void init_gb(char* filename, char* bootrom = NULL){
     m_gbserial = new GBSerial(m_gbmem);
     m_gbmem->setSerial(m_gbserial);
     
+    m_sgbhandler = new SGBHandler(m_gbmem, m_gblcd, m_gbpad);
+    m_gblcd->setSGBHandler(m_sgbhandler);
+    m_gbpad->setSGBHandler(m_sgbhandler);
+
     m_gbcart->printCartInfo();
 }
 
 void destroy_gb(){
+    delete m_sgbhandler;
     delete m_gbpad;
     delete m_gbcpu;
     delete m_gbaudio;
