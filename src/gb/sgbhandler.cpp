@@ -213,7 +213,22 @@ void SGBHandler::commandSetAttributeCharacter(uint8_t* data) {
 //Unused commands between implementations here...
 
 void SGBHandler::commandMultiplayerRegister(uint8_t* data) {
-    std::cout << "Unimplemented SGB command Multiplayer Register!" << std::endl;
+    //std::cout << "Unimplemented SGB command Multiplayer Register!" << std::endl;
+    std::cout << "SGB Command Multiplayer Request" << std::endl;
+    switch(data[1]){
+        case MLT_REQ_ONE:
+            m_pad->setPlayerCount(1);
+            break;
+        case MLT_REQ_TWO:
+            m_pad->setPlayerCount(2);
+            break;
+        case MLT_REQ_FOUR:
+            m_pad->setPlayerCount(4);
+            break;
+        default:
+            std::cout << "Unrecognized player count for multiplayer request: " << +data[1] << std::endl;
+            m_pad->setPlayerCount(1);
+    }
 }
 
 //Unused commands between implemenations here...

@@ -7,12 +7,18 @@
 //Note that state is inverted... 0 indicates selected!
 #define JOYPAD_SELECT_BUTTONS 0x1
 #define JOYPAD_SELECT_DPAD    0x2
+#define JOYPAD_SELECT_SGB_ID  0x3
 
 //If these bits are set, the button is released
 #define JOYPAD_INPUT_RIGHT_A    1
 #define JOYPAD_INPUT_LEFT_B     2
 #define JOYPAD_INPUT_UP_SELECT  4
 #define JOYPAD_INPUT_DOWN_START 8
+
+#define JOYPAD_SGB_ID_1 0x0F
+#define JOYPAD_SGB_ID_2 0x0E
+#define JOYPAD_SGB_ID_3 0x0D
+#define JOYPAD_SGB_ID_4 0x0C
 
 //Forward declaration for GBMem, since GBMem needs a reference to GBPad
 class GBMem;
@@ -23,6 +29,11 @@ class GBPad{
         GBMem* m_gbmemory;
         SGBHandler* m_sgbhandler;
 
+        //Whether or not Super Gameboy multiplayer is enabled.
+        bool m_sgbMultiplayerEnabled;
+        uint8_t m_sgbPlayerCount;
+        uint8_t m_sgbCurrentPlayer;
+        
         //Stores the button state as it exists in gameboy memory
         uint8_t m_JoypadRegister;
         
@@ -45,6 +56,8 @@ class GBPad{
 
         void write(uint8_t val);
         uint8_t read(); 
+        
+        void setPlayerCount(int playerCount);
         
         void setA(bool state);
         void setB(bool state);

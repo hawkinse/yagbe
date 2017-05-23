@@ -11,6 +11,10 @@
 #define PULSE_LOW   0x02
 #define PULSE_END   0x03
 
+#define MLT_REQ_ONE 0x00
+#define MLT_REQ_TWO 0x01
+#define MLT_REQ_FOUR 0x03
+
 enum SGBCommand {
     SGB_COMMAND_PAL01 = 0,
     SGB_COMMAND_PAL23,

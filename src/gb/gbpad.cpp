@@ -5,6 +5,9 @@
 
 GBPad::GBPad(GBMem* mem){
     m_gbmemory = mem;
+    m_sgbMultiplayerEnabled = false;
+    m_sgbPlayerCount = 1;
+    m_sgbCurrentPlayer = 1;
     m_bButtonA = false;
     m_bButtonB = false;
     m_bButtonStart = false;
@@ -31,6 +34,27 @@ void GBPad::write(uint8_t val){
     //If SGB is present, send the joypad select value as a pulse.
     if (m_sgbhandler != NULL) {
         m_sgbhandler->sendPacketPulse((val >> 4) & 3);
+        
+        //TODO - move to another function if works?
+        //If both bits of button select register are high, this is switching controller.
+        if(((val >> 4) & 3) == 0x03){
+            m_sgbCurrentPlayer = (m_sgbCurrentPlayer + 1) % m_sgbPlayerCount;
+            m_JoypadRegister &= 0xF0;
+            switch(m_sgbCurrentPlayer){
+                case 1:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_1;
+                    break;
+                case 2:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_2;
+                    break;
+                case 3:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_3;
+                    break;
+                case 4:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_4;
+                    break;
+            }
+        }
     }
 }
 
@@ -43,6 +67,9 @@ uint8_t GBPad::read(){
 void GBPad::updateState(bool fireInterrupt){
     //Get selected joypad input on bits 4 and 5
     uint8_t joypadSelect = (m_JoypadRegister >> 4) & 3;
+    
+    //If both bits are high, we are in SGB controller ID mode. Don't update state.
+    if(joypadSelect == 0x3) return;
     
     //Clear all button bits to indicate all buttons are pressed
     m_JoypadRegister &= 0xF0;
@@ -85,8 +112,8 @@ void GBPad::updateState(bool fireInterrupt){
         }        
         
     } else {
-        std::cout << "Unrecognized joypad select state!";
-        m_JoypadRegister |= 0x0F;
+        //std::cout << "Unrecognized joypad select state!";
+        //m_JoypadRegister |= 0x0F;
     }
     
     if(fireInterrupt){
@@ -94,7 +121,17 @@ void GBPad::updateState(bool fireInterrupt){
         m_gbmemory->direct_write(ADDRESS_IF, interruptFlags | INTERRUPT_FLAG_JOYPAD);
     }
 }
-        
+    
+void GBPad::setPlayerCount(int playerCount){
+    if(m_sgbhandler != NULL){
+        m_sgbMultiplayerEnabled = playerCount > 1;
+        m_sgbPlayerCount = playerCount;
+        m_sgbCurrentPlayer = 1;
+    } else {
+        std::cout << "Attempt to change joypad multiplayer status without super gameboy!" << std::endl;
+    } 
+}
+
 void GBPad::setA(bool state){
     //Only update the state if it changes
     bool bUpdateState = !(m_bButtonA == state);
