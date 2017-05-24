@@ -35,30 +35,17 @@ void GBPad::write(uint8_t val){
     if (m_sgbhandler != NULL) {
         m_sgbhandler->sendPacketPulse((val >> 4) & 3);
         
-        //TODO - move to another function if works?
-        //If both bits of button select register are high, this is switching controller.
-        if(((val >> 4) & 3) == 0x03){
-            m_sgbCurrentPlayer = (m_sgbCurrentPlayer + 1) % m_sgbPlayerCount;
-            m_JoypadRegister &= 0xF0;
-            switch(m_sgbCurrentPlayer){
-                case 1:
-                    m_JoypadRegister |= JOYPAD_SGB_ID_1;
-                    break;
-                case 2:
-                    m_JoypadRegister |= JOYPAD_SGB_ID_2;
-                    break;
-                case 3:
-                    m_JoypadRegister |= JOYPAD_SGB_ID_3;
-                    break;
-                case 4:
-                    m_JoypadRegister |= JOYPAD_SGB_ID_4;
-                    break;
-            }
+        //Advance current player if enabled
+        if(m_sgbPlayerCount > 1){
+            m_sgbCurrentPlayer = ((m_sgbCurrentPlayer + 1) % (m_sgbPlayerCount));
+        } else {
+            //Reset to 1 just in case multiplayer was turned off.
+            m_sgbCurrentPlayer = 1;
         }
     }
 }
 
-uint8_t GBPad::read(){
+uint8_t GBPad::read(){        
     //Update register with current button states
     updateState(false);
     return m_JoypadRegister;
@@ -68,15 +55,11 @@ void GBPad::updateState(bool fireInterrupt){
     //Get selected joypad input on bits 4 and 5
     uint8_t joypadSelect = (m_JoypadRegister >> 4) & 3;
     
-    //If both bits are high, we are in SGB controller ID mode. Don't update state.
-    if(joypadSelect == 0x3) return;
-    
     //Clear all button bits to indicate all buttons are pressed
     m_JoypadRegister &= 0xF0;
     
     //Set bits for unpressed buttons
-    if(joypadSelect & JOYPAD_SELECT_BUTTONS){
-        
+    if(joypadSelect == JOYPAD_SELECT_BUTTONS){
         if(!m_bButtonA){
             m_JoypadRegister |= JOYPAD_INPUT_RIGHT_A;
         }
@@ -93,8 +76,7 @@ void GBPad::updateState(bool fireInterrupt){
             m_JoypadRegister |= JOYPAD_INPUT_DOWN_START;
         }
         
-    } else if ((joypadSelect & JOYPAD_SELECT_DPAD)){
-        
+    } else if (joypadSelect == JOYPAD_SELECT_DPAD){
         if(!m_bButtonRight){
             m_JoypadRegister |= JOYPAD_INPUT_RIGHT_A;
         }
@@ -112,8 +94,22 @@ void GBPad::updateState(bool fireInterrupt){
         }        
         
     } else {
-        //std::cout << "Unrecognized joypad select state!";
-        //m_JoypadRegister |= 0x0F;
+        if(m_sgbhandler != NULL && m_sgbPlayerCount > 1){
+            switch(m_sgbCurrentPlayer){
+                case 0:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_1;
+                    break;
+                case 1:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_2;
+                    break;
+                case 2:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_3;
+                    break;
+                case 3:
+                    m_JoypadRegister |= JOYPAD_SGB_ID_4;
+                    break;
+            }
+        }
     }
     
     if(fireInterrupt){
@@ -127,6 +123,7 @@ void GBPad::setPlayerCount(int playerCount){
         m_sgbMultiplayerEnabled = playerCount > 1;
         m_sgbPlayerCount = playerCount;
         m_sgbCurrentPlayer = 1;
+        std::cout << "Player count is now " << +m_sgbPlayerCount << std::endl;
     } else {
         std::cout << "Attempt to change joypad multiplayer status without super gameboy!" << std::endl;
     } 
