@@ -5,6 +5,7 @@
 #include "gblcd.h"
 #include "gbmem.h"
 #include "gbpad.h"
+#include "gbz80cpu.h" //Included for CPU timings
 
 #define PULSE_RESET 0x00
 #define PULSE_HIGH  0x01
@@ -74,7 +75,10 @@ class SGBHandler {
 
         //Number of remaining packets, if multiple packets are bieng sent.
         uint8_t m_remainingPackets = 0;
-
+        
+        //Number of total packets for this command.
+        uint8_t m_totalPackets = 0;
+        
         //Current SGB command being parsed
         SGBCommand m_currentCommand;
 
@@ -84,6 +88,8 @@ class SGBHandler {
         //Color palettes.
         RGBColor** m_colorPalettes;
 
+        RGBColor** m_systemPalettes;
+        
         //Color palette indicies for each 8x8 tile on screen
         uint8_t** m_framePaletteIndicies;
 
@@ -100,12 +106,38 @@ class SGBHandler {
         void commandSetAttributeDivide(uint8_t* data);
 
         void commandSetAttributeCharacter(uint8_t* data);
-
-        //Unused commands between implementations here...
+        
+        void commandSound(uint8_t* data);
+        
+        void commandSoundTransfer(uint8_t* data);
+        
+        void commandSetSGBPaletteIndirect(uint8_t* data);
+        
+        void commandSetSystemPalette(uint8_t* data);
+        
+        void commandSetAttractionMode(uint8_t* data);
+        
+        void commandTest(uint8_t* data);
+        
+        void commandIcon(uint8_t* data);
+        
+        void commandSNESDataSend(uint8_t* data);
+        
+        void commandSNESDataTransfer(uint8_t* data);
 
         void commandMultiplayerRegister(uint8_t* data);
 
-        //Unused commands between implemenations here...
+        void commandSNESJump(uint8_t* data);
+        
+        void commandCharacterTransfer(uint8_t* data);
+        
+        void commandScreenDataColorTransfer(uint8_t* data);
+        
+        void commandAttributeTransfer(uint8_t* data);
+        
+        void commandSetAttribute(uint8_t* data);
 
         void commandWindowMask(uint8_t* data);
+        
+        void commandSNESObjTransfer(uint8_t* data);
 };

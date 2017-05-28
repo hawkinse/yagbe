@@ -54,13 +54,13 @@ void init_gb(char* filename, char* bootrom = NULL){
     m_gbmem->setLCD(m_gblcd);
     m_gbaudio = new GBAudio(m_gbmem);
     m_gbmem->setAudio(m_gbaudio);
-    m_gbcpu = new GBZ80(m_gbmem, m_gblcd, m_gbaudio);
+    //m_gbcpu = new GBZ80(m_gbmem, m_gblcd, m_gbaudio);
     m_gbpad = new GBPad(m_gbmem);
+    m_sgbhandler = new SGBHandler(m_gbmem, m_gblcd, m_gbpad);
+    m_gbcpu = new GBZ80(m_gbmem, m_gblcd, m_gbaudio, m_sgbhandler);
     m_gbmem->setPad(m_gbpad);
     m_gbserial = new GBSerial(m_gbmem);
-    m_gbmem->setSerial(m_gbserial);
-    
-    m_sgbhandler = new SGBHandler(m_gbmem, m_gblcd, m_gbpad);
+    m_gbmem->setSerial(m_gbserial); 
     m_gblcd->setSGBHandler(m_sgbhandler);
     m_gbpad->setSGBHandler(m_sgbhandler);
 

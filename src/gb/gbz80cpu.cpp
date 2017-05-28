@@ -6,11 +6,12 @@
 #include "gblcd.h"
 #include "bytehelpers.h"
 
-GBZ80::GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio){
+GBZ80::GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio, SGBHandler* sgbhandler){
     m_gbmemory = memory;
     m_gblcd = lcd;
     m_gbaudio = audio;
     m_bSingleStep = SINGLE_STEP;
+    m_sgbhandler = sgbhandler;
     init();
 }
 
@@ -70,7 +71,13 @@ void GBZ80::init(){
     m_gbmemory->write(0xFF23, 0xBF);
     m_gbmemory->write(0xFF24, 0x77);
     m_gbmemory->write(0xFF25, 0xF3);
-    m_gbmemory->write(0xFF26, 0xF0); //0xF1 for DMG, 0xF0 for super gameboy
+    
+    if(m_sgbhandler == NULL){
+        m_gbmemory->write(0xFF26, 0xF0); //0xF1 for DMG, 0xF0 for super gameboy
+    } else {
+        m_gbmemory->write(0xFF26, 0xF1);
+    }
+    
     m_gbmemory->write(0xFFFF, 0x00);
     
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "CPU init complete\n\n";
@@ -120,6 +127,10 @@ void GBZ80::tick(float deltaTime){
         
         
         m_gbaudio->tick(nextCycleLength);
+        
+        if(m_sgbhandler != NULL){
+            m_sgbhandler->tick(nextCycleLength);
+        }
         
         if(m_bStop){
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "Processor is stopped" << std::endl;

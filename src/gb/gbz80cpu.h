@@ -4,6 +4,7 @@
 #include "gbmem.h"
 #include "gblcd.h"
 #include "gbaudio.h"
+#include "sgbhandler.h"
 #include "../IRenderer.h"
 #include "../IInputChecker.h"
 #include "../constants.h"
@@ -19,7 +20,7 @@
 
 class GBZ80{
   public:
-    GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio);
+    GBZ80(GBMem* memory, GBLCD* lcd, GBAudio* audio, SGBHandler* sgbhandler = NULL);
     ~GBZ80();
     void init();
     void tick(float deltaTime);
@@ -40,6 +41,7 @@ class GBZ80{
     GBMem* m_gbmemory;
     GBLCD* m_gblcd;
     GBAudio* m_gbaudio;
+    SGBHandler* m_sgbhandler;
     
     //TODO - find a better place for this? Dont think it belongs in the CPU!
     IInputChecker* m_InputChecker;
