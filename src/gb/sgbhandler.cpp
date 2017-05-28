@@ -149,6 +149,10 @@ void SGBHandler::colorFrame(RGBColor** frame) {
                     }
 
                     frame[realPixelX][realPixelY] = currentPixel;
+                    
+                    if(m_framePaletteIndicies[tileX][tileY] < 0 || m_framePaletteIndicies[tileX][tileY] > 3){
+                        std::cout << "Current frame palette index is out of bounds: " << +m_framePaletteIndicies[tileX][tileY] << std::endl;
+                    }
                 }
             }
         }
@@ -275,7 +279,7 @@ void SGBHandler::parseCurrentPacket() {
     m_remainingPackets--;
     if(m_remainingPackets == 0){
         m_currentCommand = SGB_COMMAND_UNDEFINED;
-        std::cout << "Finished parsing packet..." << std::endl;;
+        //std::cout << "Finished parsing packet..." << std::endl;;
     } else if (m_remainingPackets < 0){
         std::cout << "Parsed too many packets!" << std::endl;
     }
@@ -284,13 +288,14 @@ void SGBHandler::parseCurrentPacket() {
 void SGBHandler::commandSetPalettes(uint8_t palette1Index, uint8_t palette2Index, uint8_t* data) {
     std::cout << "SGB command set palette " << +palette1Index << " " << +palette2Index << "!" << std::endl;
     
-    uint16_t color0 = data[1] | data[2] << 8;
-    uint16_t color1 = data[3] | data[4] << 8;
-    uint16_t color2 = data[5] | data[6] << 8;
-    uint16_t color3 = data[7] | data[8] << 8;
-    uint16_t color4 = data[9] | data[10] << 8;
-    uint16_t color5 = data[11] | data[12] << 8;
-    uint16_t color6 = data[13] | data[14] << 8;
+    uint16_t color0 = data[1] | (data[2] << 8);
+    uint16_t color1 = data[3] | (data[4] << 8);
+    uint16_t color2 = data[5] | (data[6] << 8);
+    uint16_t color3 = data[7] | (data[8] << 8);
+    uint16_t color4 = data[9] | (data[10] << 8);
+    uint16_t color5 = data[11] | (data[12] << 8);
+    uint16_t color6 = data[13] | (data[14] << 8);
+    
     
     RGBColor color;
     color.r = (color0 & 0x1F) * 255/31;
@@ -298,6 +303,8 @@ void SGBHandler::commandSetPalettes(uint8_t palette1Index, uint8_t palette2Index
     color.b = ((color0 & 0x7C00) >> 10) * 255/31;
     
     m_color0 = color;
+    m_colorPalettes[palette1Index][0] = m_color0;
+    m_colorPalettes[palette2Index][0] = m_color0;
     
     color.r = (color1 & 0x1F) * 255/31;
     color.g = ((color1 & 0x3E0) >> 5) * 255/31;
@@ -483,10 +490,19 @@ void SGBHandler::commandSoundTransfer(uint8_t* data){
 //PAL_SET        
 void SGBHandler::commandSetSGBPaletteIndirect(uint8_t* data){
     std::cout << "SGB command Set SGB Palette Indirect" << std::endl;
+    
+    uint16_t palettes[4];
+    /*
     uint16_t palette0 = data[1] | data[2] << 8;
     uint16_t palette1 = data[3] | data[4] << 8;
     uint16_t palette2 = data[5] | data[6] << 8;
     uint16_t palette3 = data[7] | data[8] << 8;
+    */
+    
+    palettes[0] = data[1] | ((data[2] << 8) & 0x01);
+    palettes[1] = data[3] | ((data[4] << 8) & 0x01);
+    palettes[2] = data[5] | ((data[6] << 8) & 0x01);
+    palettes[3] = data[7] | ((data[8] << 8) & 0x01);
     
     uint8_t attributeFileInfo = data[9];
     
@@ -498,45 +514,52 @@ void SGBHandler::commandSetSGBPaletteIndirect(uint8_t* data){
         std::cout << "Packet uses unimplemented cancel mask!" << std::endl;
     }
     
-    m_colorPalettes[0] = m_systemPalettes[palette0];
-    m_colorPalettes[1] = m_systemPalettes[palette1];
-    m_colorPalettes[2] = m_systemPalettes[palette2];
-    m_colorPalettes[3] = m_systemPalettes[palette3];
+    
+    for(uint8_t colorPaletteIndex = 0; colorPaletteIndex < 4; colorPaletteIndex++){
+        for(uint8_t subIndex = 0; subIndex < 4; subIndex++){
+            m_colorPalettes[colorPaletteIndex][subIndex].r = m_systemPalettes[palettes[colorPaletteIndex]][subIndex].r;
+            m_colorPalettes[colorPaletteIndex][subIndex].g = m_systemPalettes[palettes[colorPaletteIndex]][subIndex].g;
+            m_colorPalettes[colorPaletteIndex][subIndex].b = m_systemPalettes[palettes[colorPaletteIndex]][subIndex].b;
+            
+            m_color0 = m_colorPalettes[colorPaletteIndex][0];
+        }
+    }
 }
         
 void SGBHandler::commandSetSystemPalette(uint8_t* data){
     std::cout << "SGB command Set System Palette" << std::endl;
-    
     //Get data
     //VRAM_START + 512
     for(uint16_t paletteIndex = 0; paletteIndex < 512; paletteIndex++){
-        uint16_t color0 = m_mem->direct_read(VRAM_START + (paletteIndex * 8));
-        color0 |= m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 1) << 8;
+        uint16_t baseAddress = BG_TILE_MAP_DISPLAY_0 + (paletteIndex * 8);
         
-        uint16_t color1 = m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 3);
-        color1 |= m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 4) << 8;
+        uint16_t color0 = m_mem->read(baseAddress);
+        color0 |= (m_mem->read(baseAddress + 1) << 8) & 0x7F00;
         
-        uint16_t color2 = m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 5);
-        color2 |= m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 6) << 8;
+        uint16_t color1 = m_mem->read(baseAddress + 2);
+        color1 |= (m_mem->read(baseAddress + 3) << 8) & 0x7F00;
         
-        uint16_t color3 = m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 7);
-        color3 |= m_mem->direct_read(VRAM_START + (paletteIndex * 8) + 8) << 8;
+        uint16_t color2 = m_mem->read(baseAddress + 4);
+        color2 |= (m_mem->read(baseAddress + 5) << 8) & 0x7F00;
+        
+        uint16_t color3 = m_mem->read(baseAddress + 6);
+        color3 |= (m_mem->read(baseAddress + 7) << 8) & 0x7F00;
         
         m_systemPalettes[paletteIndex][0].r = (color0 & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][0].g = ((color0 >> 5) & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][0].b = ((color0 >> 10) & 0x1f) * 255/31;
+        m_systemPalettes[paletteIndex][0].g = ((color0 & 0x3E0) >> 5) * 255/31;
+        m_systemPalettes[paletteIndex][0].b = ((color0 & 0x7C00) >> 10) * 255/31;
         
         m_systemPalettes[paletteIndex][1].r = (color1 & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][1].g = ((color1 >> 5) & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][1].b = ((color1 >> 10) & 0x1f) * 255/31;
+        m_systemPalettes[paletteIndex][1].g = ((color1 & 0x3E0) >> 5) * 255/31;
+        m_systemPalettes[paletteIndex][1].b = ((color1 & 0x7C00) >> 10) * 255/31;
         
         m_systemPalettes[paletteIndex][2].r = (color2 & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][2].g = ((color2 >> 5) & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][2].b = ((color2 >> 10) & 0x1f) * 255/31;
+        m_systemPalettes[paletteIndex][2].g = ((color2 & 0x3E0) >> 5) * 255/31;
+        m_systemPalettes[paletteIndex][2].b = ((color2 & 0x7C00) >> 10) * 255/31;
         
         m_systemPalettes[paletteIndex][3].r = (color3 & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][3].g = ((color3 >> 5) & 0x1f) * 255/31;
-        m_systemPalettes[paletteIndex][3].b = ((color3 >> 10) & 0x1f) * 255/31;
+        m_systemPalettes[paletteIndex][3].g = ((color3 & 0x3E0) >> 5) * 255/31;
+        m_systemPalettes[paletteIndex][3].b = ((color3 & 0x7C00) >> 10) * 255/31;
     }
 }
 
@@ -598,10 +621,12 @@ void SGBHandler::commandScreenDataColorTransfer(uint8_t* data){
         
 void SGBHandler::commandAttributeTransfer(uint8_t* data){
     std::cout << "Unimplemented SGB command Attribute Transfer!" << std::endl;
+    std::cin.get();
 }
         
 void SGBHandler::commandSetAttribute(uint8_t* data){
     std::cout << "Unimplemented SGB command Set Attribute!" << std::endl;
+    std::cin.get();
 }
 
 void SGBHandler::commandWindowMask(uint8_t* data) {
