@@ -125,6 +125,9 @@ class GBLCD{
         RGBColor** m_Framebuffer0;
         RGBColor** m_Framebuffer1;
         
+        //Stores a SGB colored frame. Used so that the original black and white frame is still available for SGB VRam transfers.
+        RGBColor** m_ColoredFrame;
+        
         //Used as a temporary buffer to hold a current working tile.
         //Global so we don't waste speed constantly destroying and recreating the buffer
         uint8_t m_TempTile[TILE_WIDTH];

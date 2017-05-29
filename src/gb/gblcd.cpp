@@ -16,9 +16,11 @@ GBLCD::GBLCD(GBMem* mem){
     m_Frames = 0;
     m_Framebuffer0 = new RGBColor*[FRAMEBUFFER_WIDTH];
     m_Framebuffer1 = new RGBColor*[FRAMEBUFFER_WIDTH];
+    m_ColoredFrame = new RGBColor*[FRAMEBUFFER_WIDTH];
     for(int col = 0; col < FRAMEBUFFER_WIDTH; col++){
         m_Framebuffer0[col] = new RGBColor[FRAMEBUFFER_HEIGHT];
         m_Framebuffer1[col] = new RGBColor[FRAMEBUFFER_HEIGHT];
+        m_ColoredFrame[col] = new RGBColor[FRAMEBUFFER_HEIGHT];
     }
     
     if(!m_gbmemory->getBootRomEnabled()){
@@ -199,12 +201,21 @@ void GBLCD::performVBlank(){
     
     //Update background map display
     if(m_displayRenderer){
+        //Get the completed frame.
+        RGBColor** completedFrame = getCompleteFrame();
+        
         //If SGB handler exists, have it colorize frame
         if (m_sgbhandler != NULL) {
-            m_sgbhandler->colorFrame(getCompleteFrame());
+            //Make a copy of the B&W frame to color.
+            for(uint8_t row = 0; row < FRAMEBUFFER_WIDTH; row++){
+                memcpy(m_ColoredFrame[row], completedFrame[row], sizeof(RGBColor) * FRAMEBUFFER_HEIGHT);
+            }
+            
+            m_sgbhandler->colorFrame(m_ColoredFrame);
+            m_displayRenderer->update(m_ColoredFrame, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
+        } else {
+            m_displayRenderer->update(completedFrame, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
         }
-
-        m_displayRenderer->update(getCompleteFrame(), FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
     }
     
     //Fires event for main vblank interrupt
