@@ -347,13 +347,13 @@ void SGBHandler::commandSetAttributeBlock(uint8_t* data) {
     
     uint8_t currentPacketIndex = 0;
     
-    uint8_t dataSetControlCode = 0;
-    uint8_t dataSetPalette = 0;
-    uint8_t dataSetCoordX1 = 0;
-    uint8_t dataSetCoordY1 = 0;
-    uint8_t dataSetCoordX2 = 0;
-    uint8_t dataSetCoordY2 = 0;
-    uint8_t dataSetCurrentByte = 0;
+    static uint8_t dataSetControlCode = 0;
+    static uint8_t dataSetPalette = 0;
+    static uint8_t dataSetCoordX1 = 0;
+    static uint8_t dataSetCoordY1 = 0;
+    static uint8_t dataSetCoordX2 = 0;
+    static uint8_t dataSetCoordY2 = 0;
+    static uint8_t dataSetCurrentByte = 0;
     
     //Check if this is the first packet so paramters can be set. 
     if(m_remainingPackets == m_totalPackets){
@@ -361,30 +361,39 @@ void SGBHandler::commandSetAttributeBlock(uint8_t* data) {
         
         //For first byte, data starts on third byte. Otherwise, first byte.
         currentPacketIndex = 2;
+        
+        std::cout << "Packet dataset count: " << +dataSetCount << std::endl;
     }
     
     while(currentPacketIndex < 16 && dataSetCount > 0){
         switch(dataSetCurrentByte){
             case 0:
                 dataSetControlCode = data[currentPacketIndex];
+                dataSetCurrentByte++;
                 break;
             case 1:
                 dataSetPalette = data[currentPacketIndex];
+                dataSetCurrentByte++;
                 break;
             case 2:
                 dataSetCoordX1 = data[currentPacketIndex];
+                dataSetCurrentByte++;
                 break;
             case 3:
                 dataSetCoordY1 = data[currentPacketIndex];
+                dataSetCurrentByte++;
                 break;
             case 4:
                 dataSetCoordX2 = data[currentPacketIndex];
+                dataSetCurrentByte++;
                 break;
             case 5:
                 dataSetCoordY2 = data[currentPacketIndex];
                 dataSetCurrentByte = 0;
                 dataSetCount--;
-                
+                std::cout << "outside color: " << +((dataSetPalette >> 4) & 0x3) << std::endl;
+                std::cout << "border color: " << +((dataSetPalette >> 2) & 0x3) << std::endl;;
+                std::cout << "inside color: " << +((dataSetPalette) & 0x3) << std::endl;;
                 for(uint8_t coordX = 0; coordX < FRAMEBUFFER_WIDTH/TILE_WIDTH; coordX++){
                     for(uint8_t coordY = 0; coordY < FRAMEBUFFER_HEIGHT/TILE_HEIGHT; coordY++){
                         //Set palette for outside the border
@@ -410,7 +419,6 @@ void SGBHandler::commandSetAttributeBlock(uint8_t* data) {
                 }
                 break;
         }
-        
         currentPacketIndex++;
     }
 }
