@@ -13,4 +13,5 @@ yagbe.dir
 *.vcxproj
 *.filters
 *.sln
-
+Debug/*
+x64/*
