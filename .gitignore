@@ -10,5 +10,7 @@ cmake_install.cmake
 bin/*
 Win32/*
 yagbe.dir
-
+*.vcxproj
+*.filters
+*.sln
 
