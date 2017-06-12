@@ -71,7 +71,7 @@ void destroy_gb(){
     delete m_gbserial;
 }
 
-bool init_sdl(float windowScale = 1.0f, bool showBackgroundMap = false){
+bool init_sdl(float windowScale = 1.0f){
     bool bSuccess = true;
     
     //Initialize with VSync so we don't waste processor cycles needlessly and burn battery life
@@ -80,7 +80,7 @@ bool init_sdl(float windowScale = 1.0f, bool showBackgroundMap = false){
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) >= 0){
 	//Generate window title
 	char* windowTitle = new char[24];
-        memcpy(windowTitle, "Yagbe: ", 7);
+    memcpy(windowTitle, "Yagbe: ", 7);
 	memcpy(windowTitle + 7, m_gbcart->getCartridgeTitle().c_str(), 16);
         
         //Create main window
@@ -200,7 +200,7 @@ int main(int argc, char** argv){
   }
   
   //Initialize SDL
-  init_sdl(windowScale, false);
+  init_sdl(windowScale);
   
   //Connect SDL to the gameboy emulator display
   m_MainBufferRenderer = new SDLBufferRenderer(m_SDLWindowRenderer);
