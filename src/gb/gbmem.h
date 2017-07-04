@@ -50,6 +50,7 @@
 #define ADDRESS_BCPS   0xFF68 //GBC only
 #define ADDRESS_BCPD   0xFF69 //GBC only
 #define ADDRESS_OCPS   0xFF6A //GBC only
+#define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
 #define ADDRESS_VBK    0xFF4F
 #define ADDRESS_DMA    0xFF46
 #define ADDRESS_HDMA1  0xFF51 //GBC only
@@ -57,6 +58,8 @@
 #define ADDRESS_HDMA3  0xFF53 //GBC only
 #define ADDRESS_HDMA4  0xFF54 //GBC only
 #define ADDRESS_HDMA5  0xFF55 //GBC only
+#define ADDRESS_IR	   0xFF56 //GBC only, IR port.
+#define ADDRESS_SVBK   0xFF70 //GBC only, WRAM bank
 
 //Square Wave 1 Channel Addresses
 #define ADDRESS_NR10 0xFF10
@@ -102,7 +105,7 @@
 #define ADDRESS_TAC    0xFF07
 #define ADDRESS_IF     0xFF0F
 
-#define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
+
 //IR register skipped
 #define ADDRESS_SVBK   0xFF70 //GBC WRAM bank
 
@@ -129,7 +132,7 @@ class GBMem{
     GBSerial* m_gbserial;
     
     bool m_bVRamBank;
-    uint8_t m_WRamBank;
+    uint8_t m_WRamBank; //Current work ram bank.
     
     //Timer and Divider "registers"
     uint8_t m_RegisterDIV;
@@ -138,11 +141,7 @@ class GBMem{
     uint8_t m_RegisterTAC;
     
     uint8_t m_mem[0xFFFF]; //Entire memory map.
-    uint8_t* m_extRamExtraBanks; //Stores all banks of extram
-    uint8_t* m_wRamBanks; //Only stores banks 1-7, since bank 0 is constant 
-    
-    void switch_bank_vram();
-    void switch_bank_wram(uint8_t bank);
+    uint8_t m_wRamBanks[0x7000]; //Store ram banks 1 through 7. 4KB each, 28kb total.
     
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);
