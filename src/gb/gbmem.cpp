@@ -130,6 +130,11 @@ void GBMem::write(uint16_t address, uint8_t value) {
 	else if (address == ADDRESS_SVBK) {
 		//Work ram bank is only 3 bits
 		m_WRamBank = value & 0x03;
+
+		//Ensure that work ram bank is never set to 0.
+		if (m_WRamBank == 0) {
+			m_WRamBank = 1;
+		}
 	} else if (address == ADDRESS_DIV) {
 		  //Writing to the DIV register resets it
 		m_mem[ADDRESS_DIV] = 0;
