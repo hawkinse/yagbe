@@ -119,15 +119,13 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		if (value == 0x01) {
 			m_gbcart->setBootRomEnabled(false);
 		}
-	} else if ((address >= WRAM_BANK_1_START) && (address <= WRAM_BANK_1_END)){
-		//Store a copy of the data in normal ram as well.
-		m_mem[address] = value;
+	} else if (address == ADDRESS_SVBK) {
+		//TODO - Check for DMG and return.
+		//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 
-		//TODO - ensure that this only uses the first bank on DMG!
-		uint16_t workRamAddress = address - WRAM_BANK_1_START + ((m_WRamBank - 1) * 4096);
-		m_wRamBanks[workRamAddress] = value;
-	}
-	else if (address == ADDRESS_SVBK) {
+		//Back up current bank
+		memcpy(m_wRamBanks + ((m_WRamBank - 1) * 4096), m_mem + WRAM_BANK_1_START, sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+
 		//Work ram bank is only 3 bits
 		m_WRamBank = value & 0x03;
 
@@ -135,6 +133,16 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		if (m_WRamBank == 0) {
 			m_WRamBank = 1;
 		}
+
+		//Store register content so that direct access still works
+		m_mem[ADDRESS_SVBK] = m_WRamBank;
+
+		//Restore current ram bank
+		memcpy(m_mem + WRAM_BANK_1_START, m_wRamBanks + ((m_WRamBank - 1) * 4096), sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+
+		if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
+		
+		
 	} else if (address == ADDRESS_DIV) {
 		  //Writing to the DIV register resets it
 		m_mem[ADDRESS_DIV] = 0;
@@ -229,10 +237,6 @@ uint8_t GBMem::read(uint16_t address){
       toReturn = m_gbcart->read(address);
   } else if ((address >= EXTRAM_START) && (address <= EXTRAM_END)){
       toReturn = m_gbcart->read(address);
-  } else if (false &&(address >= WRAM_BANK_1_START) && (address <= WRAM_BANK_1_END)) {
-	  //TODO - ensure that this only uses the first bank on DMG!
-	  uint16_t workRamAddress = address - WRAM_BANK_1_START + ((m_WRamBank - 1) * 4096);
-	  toReturn = m_wRamBanks[workRamAddress];
   } else if (address == ADDRESS_SVBK) {
 	  toReturn = m_WRamBank;
   } else if((address >= ECHO_RAM_START) && (address <= ECHO_RAM_END)){
