@@ -97,6 +97,7 @@ void GBZ80::tick(float deltaTime){
         cycles = nextCycleLength;
     } else {
         //Set cycles based on the given deltaTime and existing rollover
+		//If in double speed mode, double the deltaTime to double the cycles. we can run.
         cycles = (deltaTime * m_Clock * MHZ_TO_HZ) + timeRollover;
     }
     
@@ -120,14 +121,16 @@ void GBZ80::tick(float deltaTime){
         }
         
         //Update LCD even in stop state. Suspect that suspending LCD doesn't actually entierly disable it.
-        m_gblcd->tick(nextCycleLength);
+		//LCD is unaffected by double speed mode, so need to cut length in half if necessary.
+        m_gblcd->tick(nextCycleLength / (m_gbmemory->getDoubleSpeedMode() ? 2 : 1));
         
         //Memory tick is for system timer functionality.
         //TODO - move timer stuff into its own class!
         m_gbmemory->tick(nextCycleLength);
         
         
-        m_gbaudio->tick(nextCycleLength);
+		//Audio is unaffected by double speed mode, so need to cut length in half if necessary
+        m_gbaudio->tick(nextCycleLength / (m_gbmemory->getDoubleSpeedMode() ? 2 : 1));
         
         if(m_bStop){
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "Processor is stopped" << std::endl;
@@ -1787,9 +1790,26 @@ void GBZ80::instruction_halt(){
 }
   
 //Halt CPU and LCD
-void GBZ80::instruction_stop(){
-    if(CONSOLE_OUTPUT_ENABLED) std::cout << "stop" << "\n";
-    m_bStop = true;
+void GBZ80::instruction_stop() {
+	if (CONSOLE_OUTPUT_ENABLED) std::cout << "stop" << "\n";
+
+	//If in GBC mode and speed switch flag is set, stop instruction instead triggers a speed switch.
+	if (m_gbmemory->getGBCMode() && m_gbmemory->getPreparedForSpeedSwitch()) {
+		m_gbmemory->toggleDouleSpeedMode();
+
+		//Update CPU clock
+		if (m_gbmemory->getDoubleSpeedMode()) {
+			m_Clock = CLOCK_GBC;
+		}
+		else {
+			m_Clock = CLOCK_GB;
+		}
+
+		std::cout << "Clock speed switched to " << m_Clock << std::endl;
+	} else {
+		//If not in GBC mode, or the flag is not set, stop has its normal behavior.
+		m_bStop = true;
+	}
 }
   
 //Disable interrupts after next instruction

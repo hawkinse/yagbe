@@ -11,6 +11,8 @@ GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
 	m_WRamBank = 1;
 	m_systemType = systemType;
+	m_bDoubleClockSpeed = false;
+	m_bPrepareForSpeedSwitch = false;
 }
 
 GBMem::~GBMem(){
@@ -145,6 +147,9 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
 		}
 		
+	} else if (address == ADDRESS_KEY1) {
+		//Only bit 0 is writeable, indicates that the CPU is about to switch clock speeds
+		m_bPrepareForSpeedSwitch = value & 1;
 	} else if (address == ADDRESS_DIV) {
 		  //Writing to the DIV register resets it
 		m_mem[ADDRESS_DIV] = 0;
@@ -241,6 +246,12 @@ uint8_t GBMem::read(uint16_t address){
       toReturn = m_gbcart->read(address);
   } else if (address == ADDRESS_SVBK) {
 	  toReturn = m_WRamBank;
+  } else if (address == ADDRESS_KEY1) {
+	  //Bit 7 is the current CPU speed. Bit 0 is whether or not the CPU will switch speeds when executing STOP
+	  toReturn = 0;
+	  toReturn |= m_bPrepareForSpeedSwitch;
+	  toReturn |= m_bDoubleClockSpeed << 7;
+
   } else if((address >= ECHO_RAM_START) && (address <= ECHO_RAM_END)){
       uint16_t echoAddress = address - (ECHO_RAM_START - WRAM_BANK_0_START);
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Attempting to read to echo ram address " << +address << ", redirecting to " << echoAddress << std::endl;
@@ -321,6 +332,25 @@ bool GBMem::getGBCMode() {
 //Allows other components to check without having direct rom access.
 bool GBMem::getBootRomEnabled(){
     return m_gbcart->getBootRomEnabled();
+}
+
+//Get current speed
+bool GBMem::getDoubleSpeedMode() {
+	return m_bDoubleClockSpeed;
+}
+
+//Get whether or not the CPU can switch speeds
+bool GBMem::getPreparedForSpeedSwitch() {
+	return m_bPrepareForSpeedSwitch;
+}
+
+//Toggles the current speed
+void GBMem::toggleDouleSpeedMode() {
+	//Clear speed switch flag.
+	m_bPrepareForSpeedSwitch = false;
+
+	//toggle speed
+	m_bDoubleClockSpeed = !m_bDoubleClockSpeed;
 }
 
 //Used to update timer registers

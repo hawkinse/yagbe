@@ -143,6 +143,10 @@ class GBMem{
     bool m_bVRamBank;
     uint8_t m_WRamBank; //Current work ram bank.
     
+	//GBC Speed Registers
+	bool m_bDoubleClockSpeed;
+	bool m_bPrepareForSpeedSwitch;
+
     //Timer and Divider "registers"
     uint8_t m_RegisterDIV;
     uint8_t m_RegisterTIMA;
@@ -179,6 +183,15 @@ class GBMem{
     //Get whether or not we are reading from boot rom instead of cartridge
     bool getBootRomEnabled();
     
+	//Get current speed
+	bool getDoubleSpeedMode();
+
+	//Get whether or not the CPU can switch speeds
+	bool getPreparedForSpeedSwitch();
+
+	//Toggles the current speed
+	void toggleDouleSpeedMode();
+
     //Used to update timer registers
     void tick(long long hz);
 };
