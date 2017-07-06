@@ -75,6 +75,7 @@ void GBZ80::init(){
 
 	//If we are in GBC mode, register A must contain 0x11 on startup.
 	if (m_gbmemory->getGBCMode()) {
+		std::cout << "Yagbe is in GBC mode" << std::endl;
 		setRegisterA(0x11);
 	}
 

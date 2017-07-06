@@ -44,9 +44,9 @@ SDLAudioPlayer* m_AudioPlayer;
 SDLInputChecker* m_InputChecker;
 
 
-void init_gb(char* filename, char* bootrom = NULL){
+void init_gb(Platform systemType, char* filename, char* bootrom = NULL){
     m_gbcart = new GBCart(filename, bootrom);
-    m_gbmem = new GBMem();
+    m_gbmem = new GBMem(systemType);
     m_gbmem->loadCart(m_gbcart);
     m_gblcd = new GBLCD(m_gbmem);
     m_gbmem->setLCD(m_gblcd);
@@ -159,25 +159,36 @@ void mainLoop(){
     }
 }
 
-bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, float &windowScale) {
+bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, float &windowScale, Platform &systemType) {
 	bool bSuccess = true;
 	int argIndex = 1;
 	while (argIndex < argc) {
 		if (strcmp(argv[argIndex], "-b") == 0) {
 			bootRomPath = argv[argIndex + 1];
+			argIndex++;
 		} else if (strcmp(argv[argIndex], "-s") == 0) {
 			windowScale = atof(argv[argIndex + 1]);
-		}
-		else if (strcmp(argv[argIndex], "-r") == 0) {
+			argIndex++;
+		} else if (strcmp(argv[argIndex], "-r") == 0) {
 			cartRomPath = argv[argIndex + 1];
+			argIndex++;
+		} else if (strcmp(argv[argIndex], "-dmg") == 0) {
+			std::cout << "Forcing system to DMG" << std::endl;
+			systemType = Platform::PLATFORM_DMG;
+		} else if (strcmp(argv[argIndex], "-sgb") == 0) {
+			std::cout << "Forcing system to SGB" << std::endl;
+			systemType = Platform::PLATFORM_SGB;
 		}
-		else {
+		else if (strcmp(argv[argIndex], "-gbc") == 0) {
+			std::cout << "Forcing system to GBC" << std::endl;
+			systemType = Platform::PLATFORM_GBC;
+		} else {
 			std::cout << "Unrecognized argument " << argv[argIndex] << std::endl;
 			bSuccess = false;
 			break;
 		}
 
-		argIndex += 2;
+		argIndex++;
 	}
 
 	return bSuccess;
@@ -187,12 +198,13 @@ int main(int argc, char** argv){
   char* bootRomPath = NULL;
   char* cartRomPath = NULL;
   float windowScale = 1.0f;
+  Platform systemType = Platform::PLATFORM_AUTO;
 
-  bool bArgsValid = parseArgs(argc, argv, bootRomPath, cartRomPath, windowScale);
+  bool bArgsValid = parseArgs(argc, argv, bootRomPath, cartRomPath, windowScale, systemType);
 
   //If there is a cart path on the command line, initialize GB components.
   if (bArgsValid && (cartRomPath != NULL)) {
-	  init_gb(cartRomPath, (ENABLE_BOOTROM ? bootRomPath : NULL));
+	  init_gb(systemType, cartRomPath, (ENABLE_BOOTROM ? bootRomPath : NULL));
   }
   else {
 	  std::cout << "No cart specified or arguments invalid!" << std::endl;

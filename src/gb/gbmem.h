@@ -122,6 +122,12 @@
 #define INTERRUPT_FLAG_SERIAL 0x8 //Bit 3
 #define INTERRUPT_FLAG_JOYPAD 0x10 //Bit 4
 
+enum Platform {
+	PLATFORM_DMG = 0,
+	PLATFORM_SGB = 1,
+	PLATFORM_GBC = 2,
+	PLATFORM_AUTO
+};
 
 class GBMem{
   private:
@@ -131,8 +137,8 @@ class GBMem{
     GBPad* m_gbpad;
     GBSerial* m_gbserial;
     
-	//Whether or not system is in GBC mode. Stored in memory object since both the LCD and CPU need to access this, and value is determined from cartridge and/or flag.
-	bool m_bGBColorMode;
+	//The current platform being emulated. Currently used to see if GBC features should be enabled
+	Platform m_systemType;
 
     bool m_bVRamBank;
     uint8_t m_WRamBank; //Current work ram bank.
@@ -150,7 +156,7 @@ class GBMem{
     void increment_RegisterTIMA(long long hz);
     
   public:
-    GBMem();
+    GBMem(Platform systemType = Platform::PLATFORM_AUTO);
     ~GBMem();
     
     void write(uint16_t address, uint8_t value);

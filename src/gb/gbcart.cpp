@@ -539,3 +539,8 @@ void GBCart::printCartInfo(){
 bool GBCart::cartSupportsGBC() {
 	return m_bIsGBC;
 }
+
+//Gets whether or not the cart supports SGB
+bool GBCart::cartSupportsSGB() {
+	return m_bIsSGB;
+}

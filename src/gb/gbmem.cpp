@@ -7,9 +7,10 @@
 
 using namespace std;
 
-GBMem::GBMem(){
+GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
 	m_WRamBank = 1;
+	m_systemType = systemType;
 }
 
 GBMem::~GBMem(){
@@ -121,7 +122,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		}
 	} else if (address == ADDRESS_SVBK) {
 		//Only allow ram bank switching in GBC mode
-		if (m_bGBColorMode) {
+		if (m_systemType == Platform::PLATFORM_GBC) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 
 			//Back up current bank
@@ -277,18 +278,22 @@ uint8_t GBMem::direct_read(uint16_t address){
     return m_mem[address];
 }
     
-void GBMem::loadCart(GBCart* cart){
-    m_gbcart = cart;
+void GBMem::loadCart(GBCart* cart) {
+	m_gbcart = cart;
 
-	//If the cart supports gameboy color, switch to color mode.
-	m_bGBColorMode = m_gbcart->cartSupportsGBC();
-	
-	if (m_bGBColorMode) {
-		std::cout << "Yagbe is in GBC mode." << std::endl;
+	//If platform is set to auto, set based on cart type
+	if (m_systemType == Platform::PLATFORM_AUTO) {
+		if (m_gbcart->cartSupportsGBC()) {
+			m_systemType = Platform::PLATFORM_GBC;
+		} else {
+			if (m_gbcart->cartSupportsSGB()) {
+				m_systemType = Platform::PLATFORM_SGB;
+			} else {
+				m_systemType = Platform::PLATFORM_DMG;
+			}
+		}
 	}
-	else {
-		std::cout << "Yagbe is in DMG mode." << std::endl;
-	}
+
 }
 
 void GBMem::setLCD(GBLCD* lcd){
@@ -309,7 +314,7 @@ void GBMem::setSerial(GBSerial* serial){
 
 //Get whether or not we are in GBC mode
 bool GBMem::getGBCMode() {
-	return m_bGBColorMode;
+	return (m_systemType == Platform::PLATFORM_GBC);
 }
 
 //Get whether or not we are reading from boot rom instead of cartridge

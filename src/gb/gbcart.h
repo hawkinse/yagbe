@@ -191,4 +191,7 @@ class GBCart{
 
 	//Gets whether or not the cart supports GBC
 	bool cartSupportsGBC();
+
+	//Gets whether or not the cart supports SGB
+	bool cartSupportsSGB();
 };
