@@ -120,28 +120,29 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			m_gbcart->setBootRomEnabled(false);
 		}
 	} else if (address == ADDRESS_SVBK) {
-		//TODO - Check for DMG and return.
-		//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
+		//Only allow ram bank switching in GBC mode
+		if (m_bGBColorMode) {
+			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 
-		//Back up current bank
-		memcpy(m_wRamBanks + ((m_WRamBank - 1) * 4096), m_mem + WRAM_BANK_1_START, sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+			//Back up current bank
+			memcpy(m_wRamBanks + ((m_WRamBank - 1) * 4096), m_mem + WRAM_BANK_1_START, sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
 
-		//Work ram bank is only 3 bits
-		m_WRamBank = value & 0x03;
+			//Work ram bank is only 3 bits
+			m_WRamBank = value & 0x03;
 
-		//Ensure that work ram bank is never set to 0.
-		if (m_WRamBank == 0) {
-			m_WRamBank = 1;
+			//Ensure that work ram bank is never set to 0.
+			if (m_WRamBank == 0) {
+				m_WRamBank = 1;
+			}
+
+			//Store register content so that direct access still works
+			m_mem[ADDRESS_SVBK] = m_WRamBank;
+
+			//Restore current ram bank
+			memcpy(m_mem + WRAM_BANK_1_START, m_wRamBanks + ((m_WRamBank - 1) * 4096), sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+
+			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
 		}
-
-		//Store register content so that direct access still works
-		m_mem[ADDRESS_SVBK] = m_WRamBank;
-
-		//Restore current ram bank
-		memcpy(m_mem + WRAM_BANK_1_START, m_wRamBanks + ((m_WRamBank - 1) * 4096), sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
-
-		if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
-		
 		
 	} else if (address == ADDRESS_DIV) {
 		  //Writing to the DIV register resets it
@@ -278,6 +279,16 @@ uint8_t GBMem::direct_read(uint16_t address){
     
 void GBMem::loadCart(GBCart* cart){
     m_gbcart = cart;
+
+	//If the cart supports gameboy color, switch to color mode.
+	m_bGBColorMode = m_gbcart->cartSupportsGBC();
+	
+	if (m_bGBColorMode) {
+		std::cout << "Yagbe is in GBC mode." << std::endl;
+	}
+	else {
+		std::cout << "Yagbe is in DMG mode." << std::endl;
+	}
 }
 
 void GBMem::setLCD(GBLCD* lcd){
@@ -294,6 +305,11 @@ void GBMem::setPad(GBPad* pad){
 
 void GBMem::setSerial(GBSerial* serial){
     m_gbserial = serial;
+}
+
+//Get whether or not we are in GBC mode
+bool GBMem::getGBCMode() {
+	return m_bGBColorMode;
 }
 
 //Get whether or not we are reading from boot rom instead of cartridge

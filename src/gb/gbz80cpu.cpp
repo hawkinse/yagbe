@@ -72,6 +72,13 @@ void GBZ80::init(){
     m_gbmemory->write(0xFF25, 0xF3);
     m_gbmemory->write(0xFF26, 0xF1); //0xF0 for super gameboy
     m_gbmemory->write(0xFFFF, 0x00);
+
+	//If we are in GBC mode, register A must contain 0x11 on startup.
+	if (m_gbmemory->getGBCMode()) {
+		setRegisterA(0x11);
+	}
+
+
     
     if(CONSOLE_OUTPUT_ENABLED) std::cout << "CPU init complete\n\n";
 }

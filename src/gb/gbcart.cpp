@@ -167,7 +167,7 @@ void GBCart::postCartLoadSetup(){
     memcpy(m_CartTitle, getCartridgeTitle().c_str(), 16);
     
     //Set if Gameboy Color game
-    m_bIsGBC = (m_cartRom[ADDRESS_CART_PLATFORM] == 0x80);
+    m_bIsGBC = (m_cartRom[ADDRESS_CART_PLATFORM] == CART_PLATFORM_GBC_DMG) || (m_cartRom[ADDRESS_CART_PLATFORM] == CART_PLATFORM_GBC_ONLY);
     
     //Set new licensee code (high)
     m_LicenseeNewHigh = m_cartRom[ADDRESS_CART_LICENSEE_HI];
@@ -176,7 +176,7 @@ void GBCart::postCartLoadSetup(){
     m_LicenseeNewLow = m_cartRom[ADDRESS_CART_LICENSEE_LO];
     
     //Set if Super Gameboy Game
-    m_bIsSGB = (m_cartRom[ADDRESS_CART_SGB] == 0x03);
+    m_bIsSGB = (m_cartRom[ADDRESS_CART_SGB] == CART_PLATFORM_SGB);
     
     //Set cart type
     m_CartType = m_cartRom[ADDRESS_CART_TYPE];
@@ -533,4 +533,9 @@ void GBCart::printCartInfo(){
     std::cout << "Region: " << std::hex << +m_CartRegion << "\n";
     std::cout << "Licensee code (old): " << std::hex << +m_LicenseeOld << "\n";
     std::cout << "Mask rom version: " << std::hex << +m_MaskVersion << "\n";
+}
+
+//Gets whether or not the cart supports GBC
+bool GBCart::cartSupportsGBC() {
+	return m_bIsGBC;
 }

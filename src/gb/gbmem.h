@@ -131,6 +131,9 @@ class GBMem{
     GBPad* m_gbpad;
     GBSerial* m_gbserial;
     
+	//Whether or not system is in GBC mode. Stored in memory object since both the LCD and CPU need to access this, and value is determined from cartridge and/or flag.
+	bool m_bGBColorMode;
+
     bool m_bVRamBank;
     uint8_t m_WRamBank; //Current work ram bank.
     
@@ -164,6 +167,9 @@ class GBMem{
     void setPad(GBPad* pad);
     void setSerial(GBSerial* serial);
     
+	//Get whether or not we are in GBC mode
+	bool getGBCMode();
+
     //Get whether or not we are reading from boot rom instead of cartridge
     bool getBootRomEnabled();
     
