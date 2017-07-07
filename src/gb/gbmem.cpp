@@ -10,12 +10,15 @@ using namespace std;
 GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
 	m_WRamBank = 1;
+	//Work ram banks need to be dynamically allocated for memcpy to work
+	m_wRamBanks = new uint8_t[0x1000];
 	m_systemType = systemType;
 	m_bDoubleClockSpeed = false;
 	m_bPrepareForSpeedSwitch = false;
 }
 
 GBMem::~GBMem(){
+	delete m_wRamBanks;
 }
 
 void write_unusable(uint16_t address);
@@ -126,12 +129,12 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		//Only allow ram bank switching in GBC mode
 		if (m_systemType == Platform::PLATFORM_GBC) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
-
+			
 			//Back up current bank
-			memcpy(m_wRamBanks + ((m_WRamBank - 1) * 4096), m_mem + WRAM_BANK_1_START, sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+			std::memcpy(&m_wRamBanks[(m_WRamBank - 1) * 0x1000], &m_mem[WRAM_BANK_1_START], sizeof(uint8_t) * (0x1000));
 
 			//Work ram bank is only 3 bits
-			m_WRamBank = value & 0x03;
+			m_WRamBank = value & 0x7;
 
 			//Ensure that work ram bank is never set to 0.
 			if (m_WRamBank == 0) {
@@ -142,7 +145,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			m_mem[ADDRESS_SVBK] = m_WRamBank;
 
 			//Restore current ram bank
-			memcpy(m_mem + WRAM_BANK_1_START, m_wRamBanks + ((m_WRamBank - 1) * 4096), sizeof(uint8_t) * (WRAM_BANK_1_END - WRAM_BANK_1_START));
+			memcpy(&m_mem[WRAM_BANK_1_START], &m_wRamBanks[(m_WRamBank - 1) * 0x1000], sizeof(uint8_t) * 0x1000);
 
 			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
 		}

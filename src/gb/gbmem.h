@@ -154,7 +154,7 @@ class GBMem{
     uint8_t m_RegisterTAC;
     
     uint8_t m_mem[0xFFFF]; //Entire memory map.
-    uint8_t m_wRamBanks[0x7000]; //Store ram banks 1 through 7. 4KB each, 28kb total.
+    uint8_t *m_wRamBanks; //Store ram banks 1 through 7. 4KB each, 28kb total.
     
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);
