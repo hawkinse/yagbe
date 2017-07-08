@@ -29,6 +29,9 @@
 #define STAT_COINCIDENCE_FLAG 4
 #define STAT_MODE_FLAG 3
 
+//GBC DMA Transfer value mode
+#define GBC_DMA_MODE 128
+
 //Modes
 #define STAT_MODE0_HBLANK   0
 #define STAT_MODE1_VBLANK   1
@@ -132,6 +135,11 @@ class GBLCD{
         //Number of frames rendered
         long m_Frames;
         
+		//Addresses and length for GBC HDMA transfer
+		uint16_t hdmaSourceAddress;
+		uint16_t hdmaDestinationAddress;
+		uint8_t hdmaLength;
+
         //Mode functions
         void performHBlank();
         void performVBlank();
@@ -168,6 +176,12 @@ class GBLCD{
         //Swaps buffers and clears the active buffer
         void swapBuffers();
         
+		//Gets whether or not GBC mode HBlank DMA is active.
+		bool isHBlankDMATransferActive();
+
+		//Performs GBC mode VRam DMA
+		void performDMATransferGBC();
+
     public:
         GBLCD(GBMem* mem);
         ~GBLCD();
@@ -207,6 +221,8 @@ class GBLCD{
         
         void startDMATransfer(uint8_t address);
         
+		void startDMATransferGBC(uint8_t val);
+
         void writeVRam(uint16_t address, uint8_t val);
         uint8_t readVRam(uint16_t address);
         void writeVRamSpriteAttribute(uint16_t address, uint8_t val);

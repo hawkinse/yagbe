@@ -127,7 +127,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		}
 	} else if (address == ADDRESS_SVBK) {
 		//Only allow ram bank switching in GBC mode
-		if (m_systemType == Platform::PLATFORM_GBC) {
+		if (getGBCMode()) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 			
 			//Back up current bank
@@ -186,7 +186,13 @@ void GBMem::write(uint16_t address, uint8_t value) {
 	} else if(address == ADDRESS_DMA){
 		if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Writing address for OAM DMA Transfer" << std::endl;
 		m_gblcd->startDMATransfer(value);
-	} else if (address == ADDRESS_NR10){
+	}
+	else if (address == ADDRESS_HDMA5) {
+		//HDMA5 is a trigger for GBC mode VRam DMA transfer.
+		if (getGBCMode()) {
+			m_gblcd->startDMATransferGBC(value);
+		}
+	} else if (address == ADDRESS_NR10) {
 		m_gbaudio->setNR10(value);
 	} else if (address == ADDRESS_NR11){
 		m_gbaudio->setNR11(value);

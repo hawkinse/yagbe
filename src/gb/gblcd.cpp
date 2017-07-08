@@ -187,6 +187,11 @@ void GBLCD::performHBlank(){
         
         //Set line for next blank
         incrementLY();
+
+		//If there is an HBlank DMA in progress, run it.
+		if (isHBlankDMATransferActive()) {
+			performDMATransferGBC();
+		}
     }
 }
 
@@ -648,7 +653,79 @@ void GBLCD::startDMATransfer(uint8_t address){
         m_gbmemory->direct_write(OAM_START + offset, m_gbmemory->read(source + offset));
     }
 }
-        
+     
+void GBLCD::startDMATransferGBC(uint8_t val) {
+	//std::cout << "Unimplemented GBC DMA transfer!" << std::endl;
+
+	//Correct src and dest addresses so that they ignore the first four bits.
+	hdmaSourceAddress = (m_gbmemory->read(ADDRESS_HDMA1) << 8 | m_gbmemory->read(ADDRESS_HDMA2)) & 0xFFF0;
+	hdmaDestinationAddress = (m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0xFFF0;
+
+	//Correct destination address to ensure it is in VRam.
+	hdmaDestinationAddress = (hdmaDestinationAddress & 0x1FFF) | 0x8000;
+
+	//Length is stored in lower 7 bits, divided by 0x10 and subtracted by 1.
+	hdmaLength = ((val & 0x7F) + 1) * 0x10;
+
+	//If this is a general DMA transfer, start transfer.
+	//HBlank transfers will be triggered in next HBlank.
+	if (!(val & GBC_DMA_MODE)) {
+		std::cout << "GBC General DMA Transfer!" << std::endl;
+		//performDMATransferGBC();
+
+		//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
+		//Possibly due to unimplemented VRam bank switching + tile support?
+		for (uint8_t index = 0; index < hdmaLength; index++) {
+			m_gbmemory->direct_write(hdmaDestinationAddress + index, m_gbmemory->read(hdmaSourceAddress + index));
+			
+		}
+	}
+	else {
+		//std::cout << "Unimplemented GBC HBlank DMA Transfer!" << std::endl;
+		std::cout << "GBC HBlank DMA Transfer started" << std::endl;
+	}
+}
+
+//Gets whether or not GBC mode HBlank DMA is active.
+bool GBLCD::isHBlankDMATransferActive() {
+	bool toReturn = false;
+
+	//HBlank DMA only occures on GBC
+	if (m_gbmemory->getGBCMode()) {
+		//Check if the HBlank DMA flag is set.
+		toReturn = (m_gbmemory->direct_read(ADDRESS_HDMA5) & GBC_DMA_MODE) > 0;
+	}
+
+	return toReturn;
+}
+
+//Performs GBC mode VRam DMA
+void GBLCD::performDMATransferGBC() {
+	//for now, ignore HBlank DMA
+	if (isHBlankDMATransferActive()) return;
+
+	//In HDMA transfer, only 0x10 bytes can be tranfered at once.
+	uint8_t length = (isHBlankDMATransferActive() ? 0x10 : hdmaLength);
+
+	//Copy bytes
+	for (uint8_t currentByte = 0; currentByte < length; currentByte++) {
+		m_gbmemory->direct_write(hdmaDestinationAddress + currentByte, m_gbmemory->read(hdmaSourceAddress + currentByte));
+	}
+
+	//If this is an HBlank transfer, need to save current progress or set done flag.
+	if (isHBlankDMATransferActive()) {
+		//Adjust source address and length for next call if HBlank transfer.
+		hdmaSourceAddress += length;
+		hdmaLength -= length;
+
+		//If there are no bytes left to copy, clear HBlank DMA flag.
+		if (!hdmaLength) {
+			//Only bit 7 must be 0, but rest of bits are undefined.
+			m_gbmemory->direct_write(ADDRESS_HDMA5, 0);
+		}
+	}
+}
+
 void GBLCD::writeVRam(uint16_t address, uint8_t val){
     uint8_t modeFlag = getLCDC() & STAT_MODE_FLAG;
     
