@@ -409,7 +409,8 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                         RGBColor pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
                          
                         if(!pixel.transparent){
-                            if(!(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || frameBuffer[renderPosX][getLY()].transparent){
+							//On Gameboy Color, when bit 0 of LCDC is cleared sprites always have priority independent of priority flags.
+                            if((m_gbmemory->getGBCMode() && !(getLCDC() & LCDC_BG_DISPLAY)) || !(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || frameBuffer[renderPosX][getLY()].transparent){
                                 frameBuffer[renderPosX][getLY()] = pixel;
                             }
                         }
