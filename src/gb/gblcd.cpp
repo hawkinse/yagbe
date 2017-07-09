@@ -323,13 +323,6 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
         int tileIndex = 0;
         uint16_t tilePatternAddress = 0;
         
-		//TODO -- add support for flags other than vram bank, like flip or color palette.
-		uint8_t gbcFlags = 0;
-		if (m_gbmemory->getGBCMode()) {
-			//Flags for background tiles are stored at the same address in bank 1 as where the tile map is in bank 0.
-			gbcFlags = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 1);
-		}
-
         //Shift from 0-128 to -128-127 based on tile location select
         if(getLCDC() & LCDC_BG_WINDOW_TILE_SELECT){            
             tileIndex = rawTileIndex;
@@ -339,17 +332,39 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
             tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
         }
         
-        getTileLine(m_TempTile, (gbcFlags & BGMAP_ATTRIBUTE_VRAM_BANK) > 0, tilePatternAddress, tileIndex, (bgPixelY % TILE_HEIGHT));
+		//TODO -- add support for flags other than vram bank, like flip or color palette.
+		uint8_t gbcFlags = 0;
+		if (m_gbmemory->getGBCMode()) {
+			//Flags for background tiles are stored at the same address in bank 1 as where the tile map is in bank 0.
+			gbcFlags = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 1);
+		}
+
+		//Set the line of the tile to fetch.
+		uint8_t tileLineHeight = (bgPixelY % TILE_HEIGHT);
+
+		//If the vertical flip flag is set, flip it.
+		if (m_gbmemory->getGBCMode() && (gbcFlags & BGMAP_ATTRIBUTE_VERTICAL_FLIP)){
+			tileLineHeight = TILE_HEIGHT - tileLineHeight;
+		}
+
+        getTileLine(m_TempTile, (gbcFlags & BGMAP_ATTRIBUTE_VRAM_BANK) > 0, tilePatternAddress, tileIndex, tileLineHeight);
         
         for(int tileX = (bScrolledTileDrawn ? 0 : (getScrollX() % TILE_WIDTH)); tileX < TILE_WIDTH; tileX++){
             if(bgPixelX  >= FRAMEBUFFER_WIDTH) break;
+
 			uint8_t lyTest = getLY();
 
 			RGBColor pixelColor = COLOR_WHITE;
 
 			//Set pixel color based on platform 
 			if (m_gbmemory->getGBCMode()) {
-				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[tileX]);
+				//If the horizontal flip flag is set, flip it.
+				uint8_t orientedTileX = tileX;
+				if (gbcFlags & BGMAP_ATTRIBUTE_HORIZONTAL_FLIP) {
+					orientedTileX = TILE_WIDTH - tileX;
+				}
+
+				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
 			}
 			else {
 				//DMG Color
