@@ -38,11 +38,20 @@
 #define STAT_MODE2_OAM      2
 #define STAT_MODE3_TRANSFER 3
 
+//GBC BG Map Tile Attributes
+#define BGMAP_ATTRIBUTE_PALETTE 0x07
+#define BGMAP_ATTRIBUTE_VRAM_BANK 0x08
+#define BGMAP_ATTRIBUTE_HORIZONTAL_FLIP 0x20
+#define BGMAP_ATTRIBUTE_VERTICAL_FLIP 0x40
+#define BGMAP_ATTRIBUTE_OAM_PRIORITY 0x80
+
 //Sprite Attribute Bits
 #define SPRITE_ATTRIBUTE_BGPRIORITY 0x80
 #define SPRITE_ATTRIBUTE_YFLIP 0x40
 #define SPRITE_ATTRIBUTE_XFLIP 0x20
 #define SPRITE_ATTRIBUTE_PALLETE 0x10
+#define SPRITE_ATTRIBUTE_VRAM_BANK 0x08
+#define SPRITE_ATTRIBUTE_GBC_PALETTE 0x07
 
 //Sprite location offsets
 #define SPRITE_X_OFFSET 8
@@ -168,10 +177,7 @@ class GBLCD{
         
         //Gets an 8 pixel line of tiles for the given tile index as an array of palette indicies
         //tileIndex is a value from 0 to 255 or -128 to 127. 
-        void getTileLine(uint8_t* out, uint16_t tilePatternAddress, int tileIndex, int line);
-        
-        //Gets the full 8x8 tile at the given index
-        void getTile(uint8_t** out, uint16_t tilePatternAddress, int tileIndex);
+        void getTileLine(uint8_t* out, uint8_t vramBank, uint16_t tilePatternAddress, int tileIndex, int line);
         
         //Swaps buffers and clears the active buffer
         void swapBuffers();

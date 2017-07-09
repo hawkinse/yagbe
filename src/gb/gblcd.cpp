@@ -299,7 +299,8 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
             tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
         }
         
-        getTileLine(m_TempTile, tilePatternAddress, tileIndex, (bgPixelY % TILE_HEIGHT));
+		//TODO - add support for vram bank switching!
+        getTileLine(m_TempTile, 0, tilePatternAddress, tileIndex, (bgPixelY % TILE_HEIGHT));
         
         for(int tileX = (bScrolledTileDrawn ? 0 : (getScrollX() % TILE_WIDTH)); tileX < TILE_WIDTH; tileX++){
             if(bgPixelX  >= FRAMEBUFFER_WIDTH) break;
@@ -340,7 +341,8 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
                     tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
                 }
                 
-                getTileLine(m_TempTile, tilePatternAddress, tileIndex, (getLY() - getWindowY()) % 8);
+				//TODO - add support for vram bank switching!
+                getTileLine(m_TempTile, 0, tilePatternAddress, tileIndex, (getLY() - getWindowY()) % 8);
                 
                 for(int tileX = 0; tileX < TILE_WIDTH && (tileX + bgPixelX) < FRAMEBUFFER_WIDTH; tileX++){
                     //Skip over any part of the tile off the left edge of the screen
@@ -373,6 +375,8 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
     uint8_t spriteFlags = 0;
     bool bXFlip = false;
     bool bYFlip = false;
+	uint8_t vramBank = 0;
+	uint8_t gbcPaletteNumber = 0;
     
     //Whether or not we are in 8x16 sprite mode
     bool bDoubleHeight = (getLCDC() & LCDC_SPRITE_SIZE);
@@ -386,10 +390,15 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
         spriteFlags = m_gbmemory->direct_read(spriteAttributeAddress + 3);
         bXFlip = (spriteFlags & SPRITE_ATTRIBUTE_XFLIP) ? true : false;
         bYFlip = (spriteFlags & SPRITE_ATTRIBUTE_YFLIP) ? true : false;
-        
+		if (m_gbmemory->getGBCMode()) {
+			vramBank = (spriteFlags & SPRITE_ATTRIBUTE_VRAM_BANK) > 0;
+			gbcPaletteNumber = spriteFlags & SPRITE_ATTRIBUTE_GBC_PALETTE;
+		}
+
         int realXPos = spriteXPos - SPRITE_X_OFFSET;
         int realYPos = spriteYPos - SPRITE_Y_OFFSET;
         
+		//TODO - once GBC palettes are added, add support for sprites.
         uint8_t palette = (spriteFlags & SPRITE_ATTRIBUTE_PALLETE) ? getSpritePalette1() : getSpritePalette0();
         
         //Check if sprite is actually on screen
@@ -406,7 +415,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                     tileYSpriteLine = 7 - tileYSpriteLine;
                 }
                 
-                getTileLine(m_TempTile, TILE_PATTERN_TABLE_1, spriteTileNum, tileYSpriteLine);
+                getTileLine(m_TempTile, vramBank, TILE_PATTERN_TABLE_1, spriteTileNum, tileYSpriteLine);
                 
                 for(int tileX = 0; tileX < TILE_WIDTH; tileX++){
                     int renderPosX = realXPos + tileX;
@@ -451,17 +460,20 @@ void GBLCD::renderLine(){
 
 //Gets an 8 pixel line of tiles for the given tile index as an array of palette indicies
 //tileIndex is a value from 0 to 255 or -128 to 127. 
-void GBLCD::getTileLine(uint8_t* out, uint16_t tilePatternAddress, int tileIndex, int line){ 
+void GBLCD::getTileLine(uint8_t* out, uint8_t vramBank, uint16_t tilePatternAddress, int tileIndex, int line){ 
     //Calculate the address of the tile's starting byte + offset for the current line.
     int tileAddress = tilePatternAddress;  //TILE_PATTERN_TABLE_0;
     tileAddress += (tileIndex * TILE_BYTES);
     tileAddress += (line * 2);
-    
-    //The first byte contains the least significant bits of the color palette index.
-    //Second contains most significant.
-    uint8_t leastSignificantColors = m_gbmemory->direct_read(tileAddress);
-    uint8_t mostSignificantColors = m_gbmemory->direct_read(tileAddress + 1);
-    
+	
+	//Translate from system memory address to direct vram bank address
+	uint16_t vramAddress = (tileAddress - VRAM_START) + (vramBank * 0x2000);
+
+	//The first byte contains the least significant bits of the color palette index.
+	//Second contains most significant.
+	uint8_t leastSignificantColors = m_gbmemory->direct_vram_read(vramAddress, vramBank);
+	uint8_t mostSignificantColors = m_gbmemory->direct_vram_read(vramAddress + 1, vramBank);
+
     //Combine the two bits for each pixel in the output
     for(int colorIndex = 0; colorIndex < TILE_WIDTH; colorIndex++){
         //Bit 7 is leftmost pixel in the color bytes
@@ -471,30 +483,6 @@ void GBLCD::getTileLine(uint8_t* out, uint16_t tilePatternAddress, int tileIndex
             if(CONSOLE_OUTPUT_ENABLED) std::cout << "Warning - tile at " << +tileAddress << " has a color index greater than 3!" << std::endl;
         }        
     }
-}
-
-//Gets the full 8x8 tile at the given index
-void GBLCD::getTile(uint8_t** out, uint16_t tilePatternAddress, int tileIndex){
-    //Create an array with axis swapped, so we can directly use getTileLine
-    uint8_t** axisSwapped = new uint8_t*[TILE_HEIGHT];
-    for(int axisCol = 0; axisCol < TILE_WIDTH; axisCol++){
-        axisSwapped[axisCol] = new uint8_t[TILE_WIDTH];
-        
-        //Fill this new row with tile data
-        getTileLine(axisSwapped[axisCol], tilePatternAddress, tileIndex, axisCol);
-    }
-    
-    //Copy into output
-    for(int rowX = 0; rowX < TILE_WIDTH; rowX++){
-        for(int rowY = 0; rowY < TILE_HEIGHT; rowY++){
-            out[rowX][rowY] = axisSwapped[rowY][rowX];
-        }
-    }
-    
-    for(int axisCol = 0; axisCol < TILE_WIDTH; axisCol++){
-        delete axisSwapped[axisCol];
-    }
-    delete axisSwapped;
 }
         
 //Swaps buffers and clears the active buffer
@@ -723,6 +711,9 @@ void GBLCD::performDMATransferGBC() {
 			//Only bit 7 must be 0, but rest of bits are undefined.
 			m_gbmemory->direct_write(ADDRESS_HDMA5, 0);
 		}
+	} else {
+		//Need to set HDMA5 register to 0xFF to indicate completion.
+		m_gbmemory->direct_write(ADDRESS_HDMA5, 0xFF);
 	}
 }
 

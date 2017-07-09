@@ -51,7 +51,7 @@
 #define ADDRESS_BCPD   0xFF69 //GBC only
 #define ADDRESS_OCPS   0xFF6A //GBC only
 #define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
-#define ADDRESS_VBK    0xFF4F
+#define ADDRESS_VBK    0xFF4F //GBC only, VRam bank switch
 #define ADDRESS_DMA    0xFF46
 #define ADDRESS_HDMA1  0xFF51 //GBC only
 #define ADDRESS_HDMA2  0xFF52 //GBC only
@@ -154,8 +154,9 @@ class GBMem{
     uint8_t m_RegisterTAC;
     
     uint8_t m_mem[0xFFFF]; //Entire memory map.
-    uint8_t *m_wRamBanks; //Store ram banks 1 through 7. 4KB each, 28kb total.
-    
+    uint8_t *m_wRamBanks; //Stores ram banks 1 through 7. 4KB each, 28kb total.
+	uint8_t *m_vRamBanks; //Stores both 8kb VRam banks.
+
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);
     
@@ -171,6 +172,10 @@ class GBMem{
     void direct_write(uint16_t address, uint8_t value);
     uint8_t direct_read(uint16_t address);
     
+	//Direct read and write for VRam banks. Needed for some LCD operations.
+	void direct_vram_write(uint16_t index, uint8_t vramBank, uint8_t value);
+	uint8_t direct_vram_read(uint16_t index, uint8_t vramBank);
+
     void loadCart(GBCart* cart);
     void setLCD(GBLCD* lcd);
     void setAudio(GBAudio* audio);
@@ -179,6 +184,9 @@ class GBMem{
     
 	//Get whether or not we are in GBC mode
 	bool getGBCMode();
+
+	//Gets the current video ram bank
+	uint8_t getVRamBank();
 
     //Get whether or not we are reading from boot rom instead of cartridge
     bool getBootRomEnabled();

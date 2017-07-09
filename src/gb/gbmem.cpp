@@ -10,8 +10,14 @@ using namespace std;
 GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
 	m_WRamBank = 1;
+	m_bVRamBank = false;
 	//Work ram banks need to be dynamically allocated for memcpy to work
 	m_wRamBanks = new uint8_t[0x1000];
+	m_vRamBanks = new uint8_t[0x4000];
+	
+	//Ensure VRam is empty to prevent crash in video code from uninitialized tile locations
+	memset(m_vRamBanks, 0, 0x4000);
+
 	m_systemType = systemType;
 	m_bDoubleClockSpeed = false;
 	m_bPrepareForSpeedSwitch = false;
@@ -19,10 +25,8 @@ GBMem::GBMem(Platform systemType){
 
 GBMem::~GBMem(){
 	delete m_wRamBanks;
+	delete m_vRamBanks;
 }
-
-void write_unusable(uint16_t address);
-void read_unusable(uint16_t address);
 
 void GBMem::increment_RegisterDIV(long long hz){
     //Store any unused Hz so that we can factor it into the next update
@@ -166,7 +170,26 @@ void GBMem::write(uint16_t address, uint8_t value) {
 	   uint16_t echoAddress = address - (ECHO_RAM_START - WRAM_BANK_0_START);
 	   if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Attempting to write to echo ram address " << +address << ", redirecting to " << echoAddress << std::endl;
 	   m_mem[echoAddress] = value;
-	} else if ((address >= VRAM_START) && (address <= VRAM_END)){
+	} else if (address == ADDRESS_VBK) {
+		//Only allow vram bank switching in GBC mode
+		if (getGBCMode()) {
+			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
+
+			//Back up current bank
+			std::memcpy(&m_vRamBanks[m_bVRamBank * 0x2000], &m_mem[VRAM_START], sizeof(uint8_t) * (0x2000));
+
+			//VRam bank is the first bit of the value.
+			m_bVRamBank = value & 0x1;
+
+			//Store register content so that direct access still works
+			m_mem[ADDRESS_VBK] = m_bVRamBank;
+
+			//Restore current ram bank
+			memcpy(&m_mem[VRAM_START], &m_vRamBanks[m_bVRamBank * 0x2000], sizeof(uint8_t) * 0x2000);
+
+			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;		}
+
+	} else if ((address >= VRAM_START) && (address <= VRAM_END)) {
 	    if(CONSOLE_OUTPUT_ENABLED) std::cout << "Writing VRam" << std::endl;
 	   m_gblcd->writeVRam(address, value);
 	} else if ((address >= OAM_START) && (address <= OAM_END)){
@@ -298,6 +321,29 @@ uint8_t GBMem::direct_read(uint16_t address){
     return m_mem[address];
 }
     
+//Direct read and write for VRam banks. Needed for some LCD operations.
+void GBMem::direct_vram_write(uint16_t index, uint8_t vramBank, uint8_t value) {
+	//If the value is in the current ram bank, set in actual ram
+	if (vramBank == m_bVRamBank) {
+		m_mem[index + VRAM_START] = value;
+	} else {
+		m_vRamBanks[index + (vramBank * 0x2000)] = value;
+	}
+}
+
+uint8_t GBMem::direct_vram_read(uint16_t index, uint8_t vramBank) {
+	uint8_t val = 0;
+	//If the value is in the current ram bank, fetch from actual ram
+	if (vramBank == m_bVRamBank) {
+		val = m_mem[index + VRAM_START];
+	}
+	else {
+		val = m_vRamBanks[index + (vramBank * 0x2000)];
+	}
+
+	return val;
+}
+
 void GBMem::loadCart(GBCart* cart) {
 	m_gbcart = cart;
 
@@ -335,6 +381,11 @@ void GBMem::setSerial(GBSerial* serial){
 //Get whether or not we are in GBC mode
 bool GBMem::getGBCMode() {
 	return (m_systemType == Platform::PLATFORM_GBC);
+}
+
+//Gets the current video ram bank
+uint8_t GBMem::getVRamBank() {
+	return m_bVRamBank;
 }
 
 //Get whether or not we are reading from boot rom instead of cartridge
