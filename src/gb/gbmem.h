@@ -140,8 +140,8 @@ class GBMem{
 	//The current platform being emulated. Currently used to see if GBC features should be enabled
 	Platform m_systemType;
 
-    bool m_bVRamBank;
-    uint8_t m_WRamBank; //Current work ram bank.
+    uint8_t m_vRamBank;
+    uint8_t m_wRamBank; //Current work ram bank.
     
 	//GBC Speed Registers
 	bool m_bDoubleClockSpeed;

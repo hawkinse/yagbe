@@ -11,6 +11,13 @@ GBLCD::GBLCD(GBMem* mem){
     //Clear pointers so we don't risk pre-existing garbage triggering a buffer update
     m_displayRenderer = NULL;
     
+	m_gbcBGPalettes = new uint8_t[0x3F];
+	m_gbcOAMPalettes = new uint8_t[0x3F];
+
+	//GBC palettes are initialized to white on startup
+	memset(m_gbcBGPalettes, 0xFF, 0x3F);
+	memset(m_gbcOAMPalettes, 0xFF, 0x3F);
+
     m_Frames = 0;
     m_Framebuffer0 = new RGBColor*[FRAMEBUFFER_WIDTH];
     m_Framebuffer1 = new RGBColor*[FRAMEBUFFER_WIDTH];
@@ -42,6 +49,8 @@ GBLCD::~GBLCD(){
     //TODO - properly delete each line in the arrays in addition to base pointer
     delete m_Framebuffer0;
     delete m_Framebuffer1;
+	delete m_gbcBGPalettes;
+	delete m_gbcOAMPalettes;
 }
 
 void GBLCD::tick(long long hz){    
@@ -269,6 +278,29 @@ RGBColor GBLCD::getColor(uint8_t palette, uint8_t colorIndex){
     return toReturn;
 }
 
+//Gets GBC color from the given color index within the given palette index of the palette buffer.
+RGBColor GBLCD::getColorGBC(uint8_t* paletteBuffer, uint8_t paletteIndex, uint8_t colorIndex) {
+	//std::cout << "Unimplemented getColorGBC" << std::endl;
+	RGBColor toReturn;
+
+	//Set the start index for the current color. Four colors per palette, 2 bytes per color, so multiply by 8.
+	uint8_t startIndex = (paletteIndex * 8) + (colorIndex * 2);
+	uint16_t rawColor = paletteBuffer[startIndex] | paletteBuffer[startIndex + 1] << 8;
+
+	//Get color from bytes
+	uint8_t red = rawColor & 0x1F;
+	uint8_t green = (rawColor & 0x3E0) >> 5;
+	uint8_t blue = (rawColor & 0x7C00) >> 10;
+	
+	//Create RGBColor, converting from 5-bit to 8-bit color in the process
+	toReturn = RGBColor(red * (0xFF/0x1F), green * (0xFF/0x1F), blue * (0xFF/0x1F));
+
+	//The 0th color index indicates either a transparent sprite color or a background color which doesn't block transparent sprites.
+	toReturn.transparent = (colorIndex == 0);
+
+	return toReturn;
+}
+
 void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){    
     int bgPixelY = (getLY() + getScrollY()) % (BACKGROUND_MAP_HEIGHT * TILE_HEIGHT);
     
@@ -285,11 +317,19 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
     
     int bgPixelX = 0;
     bool bScrolledTileDrawn = false;
+
     while(bgPixelX < FRAMEBUFFER_WIDTH){
         uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
         int tileIndex = 0;
         uint16_t tilePatternAddress = 0;
         
+		//TODO -- add support for flags other than vram bank, like flip or color palette.
+		uint8_t gbcFlags = 0;
+		if (m_gbmemory->getGBCMode()) {
+			//Flags for background tiles are stored at the same address in bank 1 as where the tile map is in bank 0.
+			gbcFlags = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 1);
+		}
+
         //Shift from 0-128 to -128-127 based on tile location select
         if(getLCDC() & LCDC_BG_WINDOW_TILE_SELECT){            
             tileIndex = rawTileIndex;
@@ -299,13 +339,26 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
             tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
         }
         
-		//TODO - add support for vram bank switching!
-        getTileLine(m_TempTile, 0, tilePatternAddress, tileIndex, (bgPixelY % TILE_HEIGHT));
+        getTileLine(m_TempTile, (gbcFlags & BGMAP_ATTRIBUTE_VRAM_BANK) > 0, tilePatternAddress, tileIndex, (bgPixelY % TILE_HEIGHT));
         
         for(int tileX = (bScrolledTileDrawn ? 0 : (getScrollX() % TILE_WIDTH)); tileX < TILE_WIDTH; tileX++){
             if(bgPixelX  >= FRAMEBUFFER_WIDTH) break;
-            frameBuffer[bgPixelX][getLY()] = getColor(getBGPalette(), m_TempTile[tileX]);
+			uint8_t lyTest = getLY();
+
+			RGBColor pixelColor = COLOR_WHITE;
+
+			//Set pixel color based on platform 
+			if (m_gbmemory->getGBCMode()) {
+				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[tileX]);
+			}
+			else {
+				//DMG Color
+				 pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
+			}
             
+			uint8_t bgPixelXCopy = bgPixelX;
+			frameBuffer[bgPixelX][getLY()] = pixelColor;
+
             bgPixelX++;
         }
         
@@ -327,7 +380,7 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
             //Even though the Window can only show the size of the framebuffer, the map is still the size of the background map since they share the same location in memory
             tileLocation += ((getLY() - getWindowY()) / TILE_WIDTH * BACKGROUND_MAP_WIDTH);
             tileLocation += ((getWindowX() - 7) / TILE_WIDTH);
-            
+
             for(int bgPixelX = getWindowX() - 7; bgPixelX < FRAMEBUFFER_WIDTH; bgPixelX += TILE_WIDTH){
                 uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
                 int tileIndex = 0;
@@ -690,7 +743,7 @@ bool GBLCD::isHBlankDMATransferActive() {
 //Performs GBC mode VRam DMA
 void GBLCD::performDMATransferGBC() {
 	//for now, ignore HBlank DMA
-	if (isHBlankDMATransferActive()) return;
+	//if (isHBlankDMATransferActive()) return;
 
 	//In HDMA transfer, only 0x10 bytes can be tranfered at once.
 	uint8_t length = (isHBlankDMATransferActive() ? 0x10 : hdmaLength);
@@ -777,6 +830,52 @@ uint8_t GBLCD::readVRamSpriteAttribute(uint16_t address){
     toReturn = m_gbmemory->direct_read(address);
     
     return toReturn;
+}
+
+void GBLCD::writeBGPaletteGBC(uint8_t val) {
+	//Info for writing background palette is in BCPS
+	uint8_t bcps = m_gbmemory->direct_read(ADDRESS_BCPS);
+
+	//Get index for this byte and write.
+	uint8_t byteIndex = bcps & 0x3F;
+	m_gbcBGPalettes[byteIndex] = val;
+
+	//Check if the index should auto increment
+	if (bcps & 0x80) {
+		bcps++;
+		m_gbmemory->direct_write(ADDRESS_BCPS, bcps);
+	}
+}
+
+uint8_t GBLCD::readBGPaletteGBC() {
+	//Get index to read from BCPS
+	uint8_t byteIndex = m_gbmemory->direct_read(ADDRESS_BCPS) & 0x3F;
+
+	//Return selected byte.
+	return m_gbcBGPalettes[byteIndex];
+}
+
+void GBLCD::writeOAMPaletteGBC(uint8_t val) {
+	//Info for writing OAM palette is in OCPS
+	uint8_t ocps = m_gbmemory->direct_read(ADDRESS_OCPS);
+
+	//Get index for this byte and write
+	uint8_t byteIndex = ocps & 0x3F;
+	m_gbcOAMPalettes[byteIndex] = val;
+
+	//Check if the index should auto increment
+	if (ocps & 0x80) {
+		ocps++;
+		m_gbmemory->direct_write(ADDRESS_OCPS, ocps);
+	}
+}
+
+uint8_t GBLCD::readOAMPaletteGBC() {
+	//Get index to read from OCPS
+	uint8_t byteIndex = m_gbmemory->direct_read(ADDRESS_OCPS) & 0x3F;
+
+	//Return selected byte.
+	return m_gbcOAMPalettes[byteIndex];
 }
 
 //Gets the completed frame

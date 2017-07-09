@@ -9,8 +9,8 @@ using namespace std;
 
 GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
-	m_WRamBank = 1;
-	m_bVRamBank = false;
+	m_wRamBank = 1;
+	m_vRamBank = false;
 	//Work ram banks need to be dynamically allocated for memcpy to work
 	m_wRamBanks = new uint8_t[0x1000];
 	m_vRamBanks = new uint8_t[0x4000];
@@ -135,23 +135,23 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 			
 			//Back up current bank
-			std::memcpy(&m_wRamBanks[(m_WRamBank - 1) * 0x1000], &m_mem[WRAM_BANK_1_START], sizeof(uint8_t) * (0x1000));
+			std::memcpy(&m_wRamBanks[(m_wRamBank - 1) * 0x1000], &m_mem[WRAM_BANK_1_START], sizeof(uint8_t) * (0x1000));
 
 			//Work ram bank is only 3 bits
-			m_WRamBank = value & 0x7;
+			m_wRamBank = value & 0x7;
 
 			//Ensure that work ram bank is never set to 0.
-			if (m_WRamBank == 0) {
-				m_WRamBank = 1;
+			if (m_wRamBank == 0) {
+				m_wRamBank = 1;
 			}
 
 			//Store register content so that direct access still works
-			m_mem[ADDRESS_SVBK] = m_WRamBank;
+			m_mem[ADDRESS_SVBK] = m_wRamBank;
 
 			//Restore current ram bank
-			memcpy(&m_mem[WRAM_BANK_1_START], &m_wRamBanks[(m_WRamBank - 1) * 0x1000], sizeof(uint8_t) * 0x1000);
+			memcpy(&m_mem[WRAM_BANK_1_START], &m_wRamBanks[(m_wRamBank - 1) * 0x1000], sizeof(uint8_t) * 0x1000);
 
-			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;
+			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_wRamBank << std::endl;
 		}
 		
 	} else if (address == ADDRESS_KEY1) {
@@ -176,18 +176,18 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 
 			//Back up current bank
-			std::memcpy(&m_vRamBanks[m_bVRamBank * 0x2000], &m_mem[VRAM_START], sizeof(uint8_t) * (0x2000));
+			std::memcpy(&m_vRamBanks[m_vRamBank * 0x2000], &m_mem[VRAM_START], sizeof(uint8_t) * (0x2000));
 
 			//VRam bank is the first bit of the value.
-			m_bVRamBank = value & 0x1;
+			m_vRamBank = value & 0x1;
 
 			//Store register content so that direct access still works
-			m_mem[ADDRESS_VBK] = m_bVRamBank;
+			m_mem[ADDRESS_VBK] = m_vRamBank;
 
 			//Restore current ram bank
-			memcpy(&m_mem[VRAM_START], &m_vRamBanks[m_bVRamBank * 0x2000], sizeof(uint8_t) * 0x2000);
+			memcpy(&m_mem[VRAM_START], &m_vRamBanks[m_vRamBank * 0x2000], sizeof(uint8_t) * 0x2000);
 
-			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_WRamBank << std::endl;		}
+			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_wRamBank << std::endl;		}
 
 	} else if ((address >= VRAM_START) && (address <= VRAM_END)) {
 	    if(CONSOLE_OUTPUT_ENABLED) std::cout << "Writing VRam" << std::endl;
@@ -209,11 +209,18 @@ void GBMem::write(uint16_t address, uint8_t value) {
 	} else if(address == ADDRESS_DMA){
 		if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Writing address for OAM DMA Transfer" << std::endl;
 		m_gblcd->startDMATransfer(value);
-	}
-	else if (address == ADDRESS_HDMA5) {
+	} else if (address == ADDRESS_HDMA5) {
 		//HDMA5 is a trigger for GBC mode VRam DMA transfer.
 		if (getGBCMode()) {
 			m_gblcd->startDMATransferGBC(value);
+		}
+	} else if (address == ADDRESS_BCPS) {
+		if (getGBCMode()) {
+			m_gblcd->writeBGPaletteGBC(value);
+		}
+	} else if (address == ADDRESS_OCPS) {
+		if (getGBCMode()) {
+			m_gblcd->writeOAMPaletteGBC(value);
 		}
 	} else if (address == ADDRESS_NR10) {
 		m_gbaudio->setNR10(value);
@@ -277,7 +284,9 @@ uint8_t GBMem::read(uint16_t address){
   } else if ((address >= EXTRAM_START) && (address <= EXTRAM_END)){
       toReturn = m_gbcart->read(address);
   } else if (address == ADDRESS_SVBK) {
-	  toReturn = m_WRamBank;
+	  toReturn = m_wRamBank;
+  } else if (address == ADDRESS_VBK) {
+	  toReturn = m_vRamBank;
   } else if (address == ADDRESS_KEY1) {
 	  //Bit 7 is the current CPU speed. Bit 0 is whether or not the CPU will switch speeds when executing STOP
 	  toReturn = 0;
@@ -299,7 +308,15 @@ uint8_t GBMem::read(uint16_t address){
   } else if ((address >= OAM_START) && (address <= OAM_END)){
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Reading Sprite Attribute Table" << std::endl;
       toReturn = m_gblcd->readVRamSpriteAttribute(address);
-  }  else {
+  } else if (address == ADDRESS_BCPS) {
+	  if (getGBCMode()) {
+		  toReturn = m_gblcd->readBGPaletteGBC();
+	  }
+  } else if (address == ADDRESS_OCPS) {
+	  if (getGBCMode()) {
+		  toReturn = m_gblcd->readOAMPaletteGBC();
+	  }
+  } else {
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Standard read address " << +address << std::endl;
       bDirectReadAddress = true;
   }
@@ -324,7 +341,7 @@ uint8_t GBMem::direct_read(uint16_t address){
 //Direct read and write for VRam banks. Needed for some LCD operations.
 void GBMem::direct_vram_write(uint16_t index, uint8_t vramBank, uint8_t value) {
 	//If the value is in the current ram bank, set in actual ram
-	if (vramBank == m_bVRamBank) {
+	if (vramBank == m_vRamBank) {
 		m_mem[index + VRAM_START] = value;
 	} else {
 		m_vRamBanks[index + (vramBank * 0x2000)] = value;
@@ -334,7 +351,7 @@ void GBMem::direct_vram_write(uint16_t index, uint8_t vramBank, uint8_t value) {
 uint8_t GBMem::direct_vram_read(uint16_t index, uint8_t vramBank) {
 	uint8_t val = 0;
 	//If the value is in the current ram bank, fetch from actual ram
-	if (vramBank == m_bVRamBank) {
+	if (vramBank == m_vRamBank) {
 		val = m_mem[index + VRAM_START];
 	}
 	else {
@@ -385,7 +402,7 @@ bool GBMem::getGBCMode() {
 
 //Gets the current video ram bank
 uint8_t GBMem::getVRamBank() {
-	return m_bVRamBank;
+	return m_vRamBank;
 }
 
 //Get whether or not we are reading from boot rom instead of cartridge

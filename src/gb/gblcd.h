@@ -69,6 +69,8 @@
 #define COLOR_LIGHTGRAY RGBColor(0xD3, 0xD3, 0xD3)
 #define COLOR_BLACK     RGBColor(0x00, 0x00, 0x00)
 
+//The maximum any r, g or b value can be for a GBC color 
+#define GBC_RGB_MAX_VALUE 0x1F
 #define RETURN_VRAM_INACCESSABLE 0xFF
 
 #define FRAMEBUFFER_WIDTH 160
@@ -134,6 +136,11 @@ class GBLCD{
         RGBColor** m_Framebuffer0;
         RGBColor** m_Framebuffer1;
         
+		//GBC Color palettes
+		//Stored as uint8_t pointers intead of RGBColor pointers due to how GBC sets color values.
+		uint8_t* m_gbcBGPalettes;
+		uint8_t* m_gbcOAMPalettes;
+
         //Used as a temporary buffer to hold a current working tile.
         //Global so we don't waste speed constantly destroying and recreating the buffer
         uint8_t m_TempTile[TILE_WIDTH];
@@ -158,10 +165,11 @@ class GBLCD{
         //Increments LY
         void incrementLY();
         
+		//Gets DMG color from the given palette
         RGBColor getColor(uint8_t palette, uint8_t colorIndex);
-        
-        //Updates the background buffer
-        void updateBackground();
+ 
+		//Gets GBC color from the given color index within the given palette index of the palette buffer.
+		RGBColor getColorGBC(uint8_t* paletteBuffer, uint8_t paletteIndex, uint8_t colorIndex);
         
         //Updates the line indicated by LY and ScrollY in the background buffer
         void updateBackgroundLine(RGBColor** frameBuffer);
@@ -234,6 +242,14 @@ class GBLCD{
         void writeVRamSpriteAttribute(uint16_t address, uint8_t val);
         uint8_t readVRamSpriteAttribute(uint16_t address);
         
+		void writeBGPaletteGBC(uint8_t val);
+
+		uint8_t readBGPaletteGBC();
+
+		void writeOAMPaletteGBC(uint8_t val);
+
+		uint8_t readOAMPaletteGBC();
+
         //Gets the completed frame
         RGBColor** getCompleteFrame();
         
