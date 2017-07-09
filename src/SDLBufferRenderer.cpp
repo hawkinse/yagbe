@@ -30,7 +30,7 @@ void SDLBufferRenderer::update(RGBColor** buffer, int width, int height){
         for(int pixelY = 0; pixelY < FRAMEBUFFER_HEIGHT; pixelY++){
             RGBColor currentPixelColor = buffer[pixelX][pixelY];
             rgba[1] = currentPixelColor.r;
-            rgba[2] = currentPixelColor.b;
+            rgba[2] = currentPixelColor.g;
             rgba[3] = currentPixelColor.b;
             memcpy(&m_TextureBytes[(pixelY * FRAMEBUFFER_WIDTH + pixelX) * sizeof(rgba)], rgba, sizeof(rgba));
             
