@@ -214,11 +214,11 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		if (getGBCMode()) {
 			m_gblcd->startDMATransferGBC(value);
 		}
-	} else if (address == ADDRESS_BCPS) {
+	} else if (address == ADDRESS_BCPD) {
 		if (getGBCMode()) {
 			m_gblcd->writeBGPaletteGBC(value);
 		}
-	} else if (address == ADDRESS_OCPS) {
+	} else if (address == ADDRESS_OCPD) {
 		if (getGBCMode()) {
 			m_gblcd->writeOAMPaletteGBC(value);
 		}
@@ -308,11 +308,11 @@ uint8_t GBMem::read(uint16_t address){
   } else if ((address >= OAM_START) && (address <= OAM_END)){
       if(CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Reading Sprite Attribute Table" << std::endl;
       toReturn = m_gblcd->readVRamSpriteAttribute(address);
-  } else if (address == ADDRESS_BCPS) {
+  } else if (address == ADDRESS_BCPD) {
 	  if (getGBCMode()) {
 		  toReturn = m_gblcd->readBGPaletteGBC();
 	  }
-  } else if (address == ADDRESS_OCPS) {
+  } else if (address == ADDRESS_OCPD) {
 	  if (getGBCMode()) {
 		  toReturn = m_gblcd->readOAMPaletteGBC();
 	  }

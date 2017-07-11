@@ -50,6 +50,7 @@
 #define ADDRESS_BCPS   0xFF68 //GBC only
 #define ADDRESS_BCPD   0xFF69 //GBC only
 #define ADDRESS_OCPS   0xFF6A //GBC only
+#define ADDRESS_OCPD   0xFF6B
 #define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
 #define ADDRESS_VBK    0xFF4F //GBC only, VRam bank switch
 #define ADDRESS_DMA    0xFF46

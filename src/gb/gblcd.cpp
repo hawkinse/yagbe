@@ -283,14 +283,16 @@ RGBColor GBLCD::getColorGBC(uint8_t* paletteBuffer, uint8_t paletteIndex, uint8_
 	//std::cout << "Unimplemented getColorGBC" << std::endl;
 	RGBColor toReturn;
 
+	paletteIndex &= 0x3F;
+
 	//Set the start index for the current color. Four colors per palette, 2 bytes per color, so multiply by 8.
 	uint8_t startIndex = (paletteIndex * 8) + (colorIndex * 2);
-	uint16_t rawColor = paletteBuffer[startIndex] | paletteBuffer[startIndex + 1] << 8;
+	uint16_t rawColor = paletteBuffer[startIndex] | (paletteBuffer[startIndex + 1] << 8);
 
 	//Get color from bytes
-	uint8_t red = rawColor & 0x1F;
-	uint8_t green = (rawColor & 0x3E0) >> 5;
-	uint8_t blue = (rawColor & 0x7C00) >> 10;
+	uint8_t blue = rawColor & 0x1F;
+	uint8_t green = (rawColor >> 5) & 0x1F;
+	uint8_t red = (rawColor >> 10) & 0x1F;
 	
 	//Create RGBColor, converting from 5-bit to 8-bit color in the process
 	toReturn = RGBColor(red * (0xFF/0x1F), green * (0xFF/0x1F), blue * (0xFF/0x1F));
@@ -344,7 +346,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 
 		//If the vertical flip flag is set, flip it.
 		if (m_gbmemory->getGBCMode() && (gbcFlags & BGMAP_ATTRIBUTE_VERTICAL_FLIP)){
-			tileLineHeight = TILE_HEIGHT - tileLineHeight;
+			tileLineHeight = TILE_HEIGHT - tileLineHeight - 1;
 		}
 
         getTileLine(m_TempTile, (gbcFlags & BGMAP_ATTRIBUTE_VRAM_BANK) > 0, tilePatternAddress, tileIndex, tileLineHeight);
@@ -488,7 +490,12 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                 for(int tileX = 0; tileX < TILE_WIDTH; tileX++){
                     int renderPosX = realXPos + tileX;
                     if(renderPosX > 0 && renderPosX < FRAMEBUFFER_WIDTH){
-                        RGBColor pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+						RGBColor pixel = COLOR_WHITE;
+						if (m_gbmemory->getGBCMode()) {
+							pixel = getColorGBC(m_gbcBGPalettes, gbcPaletteNumber, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+						} else {
+							pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+						}
                          
                         if(!pixel.transparent){
 							//On Gameboy Color, when bit 0 of LCDC is cleared sprites always have priority independent of priority flags.
