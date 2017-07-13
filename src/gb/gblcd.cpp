@@ -49,8 +49,8 @@ GBLCD::~GBLCD(){
     //TODO - properly delete each line in the arrays in addition to base pointer
     delete m_Framebuffer0;
     delete m_Framebuffer1;
-	delete m_gbcBGPalettes;
 	delete m_gbcOAMPalettes;
+	delete m_gbcBGPalettes;
 }
 
 void GBLCD::tick(long long hz){    
@@ -354,8 +354,6 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
         for(int tileX = (bScrolledTileDrawn ? 0 : (getScrollX() % TILE_WIDTH)); tileX < TILE_WIDTH; tileX++){
             if(bgPixelX  >= FRAMEBUFFER_WIDTH) break;
 
-			uint8_t lyTest = getLY();
-
 			RGBColor pixelColor = COLOR_WHITE;
 
 			//Set pixel color based on platform 
@@ -372,8 +370,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 				//DMG Color
 				 pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
 			}
-            
-			uint8_t bgPixelXCopy = bgPixelX;
+
 			frameBuffer[bgPixelX][getLY()] = pixelColor;
 
             bgPixelX++;
@@ -492,7 +489,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                     if(renderPosX > 0 && renderPosX < FRAMEBUFFER_WIDTH){
 						RGBColor pixel = COLOR_WHITE;
 						if (m_gbmemory->getGBCMode()) {
-							pixel = getColorGBC(m_gbcBGPalettes, gbcPaletteNumber, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+							pixel = getColorGBC(m_gbcOAMPalettes, gbcPaletteNumber, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
 						} else {
 							pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
 						}
@@ -733,7 +730,7 @@ void GBLCD::startDMATransferGBC(uint8_t val) {
 	//If this is a general DMA transfer, start transfer.
 	//HBlank transfers will be triggered in next HBlank.
 	if (!(val & GBC_DMA_MODE)) {
-		std::cout << "GBC General DMA Transfer!" << std::endl;
+		//std::cout << "GBC General DMA Transfer!" << std::endl;
 		//performDMATransferGBC();
 
 		//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
@@ -745,7 +742,7 @@ void GBLCD::startDMATransferGBC(uint8_t val) {
 	}
 	else {
 		//std::cout << "Unimplemented GBC HBlank DMA Transfer!" << std::endl;
-		std::cout << "GBC HBlank DMA Transfer started" << std::endl;
+		//std::cout << "GBC HBlank DMA Transfer started" << std::endl;
 	}
 }
 
@@ -763,7 +760,7 @@ bool GBLCD::isHBlankDMATransferActive() {
 }
 
 //Performs GBC mode VRam DMA
-void GBLCD::performDMATransferGBC() {
+void GBLCD::performDMATransferGBC(){
 	//for now, ignore HBlank DMA
 	//if (isHBlankDMATransferActive()) return;
 
