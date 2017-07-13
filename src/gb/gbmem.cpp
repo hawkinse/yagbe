@@ -9,10 +9,11 @@ using namespace std;
 
 GBMem::GBMem(Platform systemType){
     m_mem[ADDRESS_IF] = 0;
+	m_mem[ADDRESS_VBK] = 0;
 	m_wRamBank = 1;
 	m_vRamBank = false;
 	//Work ram banks need to be dynamically allocated for memcpy to work
-	m_wRamBanks = new uint8_t[0x1000];
+	m_wRamBanks = new uint8_t[0x7000];
 	m_vRamBanks = new uint8_t[0x4000];
 	
 	//Ensure VRam is empty to prevent crash in video code from uninitialized tile locations
@@ -187,7 +188,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			//Restore current ram bank
 			memcpy(&m_mem[VRAM_START], &m_vRamBanks[m_vRamBank * 0x2000], sizeof(uint8_t) * 0x2000);
 
-			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "Bank switch to " << +m_wRamBank << std::endl;		}
+			if (CONSOLE_OUTPUT_ENABLED && CONSOLE_OUTPUT_IO) std::cout << "VRam Bank switch to " << +m_vRamBank << std::endl;		}
 
 	} else if ((address >= VRAM_START) && (address <= VRAM_END)) {
 	    if(CONSOLE_OUTPUT_ENABLED) std::cout << "Writing VRam" << std::endl;
