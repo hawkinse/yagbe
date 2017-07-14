@@ -30,7 +30,7 @@
 #define STAT_MODE_FLAG 3
 
 //GBC DMA Transfer value mode
-#define GBC_DMA_MODE 128
+#define GBC_DMA_MODE 0x80
 
 //Modes
 #define STAT_MODE0_HBLANK   0
@@ -152,9 +152,10 @@ class GBLCD{
         long m_Frames;
         
 		//Addresses and length for GBC HDMA transfer
-		uint16_t hdmaSourceAddress;
-		uint16_t hdmaDestinationAddress;
-		uint8_t hdmaLength;
+		uint16_t m_hdmaSourceAddress;
+		uint16_t m_hdmaDestinationAddress;
+		uint16_t m_hdmaLength;
+		bool m_bHBlankDMAInProgress;
 
         //Mode functions
         void performHBlank();

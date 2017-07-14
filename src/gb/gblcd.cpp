@@ -43,6 +43,8 @@ GBLCD::GBLCD(GBMem* mem){
 
     //Swap buffers to ensure screen is cleared at startup
     swapBuffers();
+
+	m_bHBlankDMAInProgress = false;
 }
 
 GBLCD::~GBLCD(){
@@ -334,7 +336,6 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
             tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
         }
         
-		//TODO -- add support for flags other than vram bank, like flip or color palette.
 		uint8_t gbcFlags = 0;
 		if (m_gbmemory->getGBCMode()) {
 			//Flags for background tiles are stored at the same address in bank 1 as where the tile map is in bank 0.
@@ -361,7 +362,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 				//If the horizontal flip flag is set, flip it.
 				uint8_t orientedTileX = tileX;
 				if (gbcFlags & BGMAP_ATTRIBUTE_HORIZONTAL_FLIP) {
-					orientedTileX = TILE_WIDTH - tileX;
+					orientedTileX = TILE_WIDTH - tileX - 1;
 				}
 
 				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
@@ -407,21 +408,45 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
                     tileIndex = reinterpret_cast<int8_t &>(rawTileIndex);
                     tilePatternAddress = TILE_PATTERN_TABLE_0_TILE_0;
                 }
-                
-				//TODO - add support for vram bank switching!
-                getTileLine(m_TempTile, 0, tilePatternAddress, tileIndex, (getLY() - getWindowY()) % 8);
+
+				uint8_t gbcFlags = 0;
+				if (m_gbmemory->getGBCMode()) {
+					//Flags for background tiles are stored at the same address in bank 1 as where the tile map is in bank 0.
+					gbcFlags = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 1);
+				}
+
+				//Set the line of the tile to fetch.
+				uint8_t tileLineHeight = ((getLY() - getWindowY()) % TILE_HEIGHT);
+
+				//If the vertical flip flag is set, flip it.
+				if (m_gbmemory->getGBCMode() && (gbcFlags & BGMAP_ATTRIBUTE_VERTICAL_FLIP)) {
+					tileLineHeight = TILE_HEIGHT - tileLineHeight - 1;
+				}
+
+				getTileLine(m_TempTile, (gbcFlags & BGMAP_ATTRIBUTE_VRAM_BANK) > 0, tilePatternAddress, tileIndex, tileLineHeight);
                 
                 for(int tileX = 0; tileX < TILE_WIDTH && (tileX + bgPixelX) < FRAMEBUFFER_WIDTH; tileX++){
                     //Skip over any part of the tile off the left edge of the screen
                     if((tileX + bgPixelX) < 0){
                         continue;
                     }
-                    
-                    //Tiles are stored with the columns and rows reversed
-                    int colorIndex = m_TempTile[tileX];
-            
+				
                     if(bgPixelX + tileX < FRAMEBUFFER_WIDTH){
-                        frameBuffer[(bgPixelX + tileX)][getLY()] = getColor(getBGPalette(), colorIndex);
+						RGBColor pixelColor = COLOR_WHITE;
+
+						//Set pixel color based on platform
+						if (m_gbmemory->getGBCMode()) {
+							//If the horizontal flip flag is set, flip it.
+							uint8_t orientedTileX = tileX;
+							if (gbcFlags & BGMAP_ATTRIBUTE_HORIZONTAL_FLIP) {
+								orientedTileX = TILE_WIDTH - tileX - 1;
+							}
+
+							pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
+						} else {
+							pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
+						}
+						frameBuffer[(bgPixelX + tileX)][getLY()] = pixelColor;
                     } else {
                         break;
                     }
@@ -533,13 +558,14 @@ void GBLCD::renderLine(){
 //Gets an 8 pixel line of tiles for the given tile index as an array of palette indicies
 //tileIndex is a value from 0 to 255 or -128 to 127. 
 void GBLCD::getTileLine(uint8_t* out, uint8_t vramBank, uint16_t tilePatternAddress, int tileIndex, int line){ 
+
     //Calculate the address of the tile's starting byte + offset for the current line.
     int tileAddress = tilePatternAddress;  //TILE_PATTERN_TABLE_0;
     tileAddress += (tileIndex * TILE_BYTES);
     tileAddress += (line * 2);
 	
 	//Translate from system memory address to direct vram bank address
-	uint16_t vramAddress = (tileAddress - VRAM_START) + (vramBank * 0x2000);
+	uint16_t vramAddress = (tileAddress - VRAM_START);
 
 	//The first byte contains the least significant bits of the color palette index.
 	//Second contains most significant.
@@ -716,47 +742,50 @@ void GBLCD::startDMATransfer(uint8_t address){
      
 void GBLCD::startDMATransferGBC(uint8_t val) {
 	//std::cout << "Unimplemented GBC DMA transfer!" << std::endl;
-
 	//Correct src and dest addresses so that they ignore the first four bits.
-	hdmaSourceAddress = (m_gbmemory->read(ADDRESS_HDMA1) << 8 | m_gbmemory->read(ADDRESS_HDMA2)) & 0xFFF0;
-	hdmaDestinationAddress = (m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0xFFF0;
-
-	//Correct destination address to ensure it is in VRam.
-	hdmaDestinationAddress = (hdmaDestinationAddress & 0x1FFF) | 0x8000;
+	m_hdmaSourceAddress = (m_gbmemory->read(ADDRESS_HDMA1) << 8 | m_gbmemory->read(ADDRESS_HDMA2)) & 0xFFF0;
+	m_hdmaDestinationAddress = (m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0xFFF0;
 
 	//Length is stored in lower 7 bits, divided by 0x10 and subtracted by 1.
-	hdmaLength = ((val & 0x7F) + 1) * 0x10;
+	m_hdmaLength = ((val & 0x7F) + 1) * 0x10;
 
 	//If this is a general DMA transfer, start transfer.
 	//HBlank transfers will be triggered in next HBlank.
 	if (!(val & GBC_DMA_MODE)) {
-		//std::cout << "GBC General DMA Transfer!" << std::endl;
-		//performDMATransferGBC();
+		if (m_bHBlankDMAInProgress) {
+			std::cout << "HBlank DMA canceled!" << std::endl;
+			m_bHBlankDMAInProgress = false;
+			//Report to game that DMA has been canceled
+			m_gbmemory->direct_write(ADDRESS_HDMA5, val | GBC_DMA_MODE);
+		} else {
+			std::cout << "GBC General DMA Transfer!" << std::endl;
+			performDMATransferGBC();
 
-		//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
-		//Possibly due to unimplemented VRam bank switching + tile support?
-		for (uint8_t index = 0; index < hdmaLength; index++) {
-			m_gbmemory->direct_write(hdmaDestinationAddress + index, m_gbmemory->read(hdmaSourceAddress + index));
+			//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
+			//Possibly due to unimplemented VRam bank switching + tile support?
+			/*
+			for (uint16_t index = 0; index < m_hdmaLength; index++) {
+			m_gbmemory->direct_write(m_hdmaDestinationAddress + index, m_gbmemory->read(m_hdmaSourceAddress + index));
+
+			}*/
 			
 		}
 	}
 	else {
 		//std::cout << "Unimplemented GBC HBlank DMA Transfer!" << std::endl;
-		//std::cout << "GBC HBlank DMA Transfer started" << std::endl;
+		std::cout << "GBC HBlank DMA Transfer started" << std::endl;
+		//Clear HBlank flag before writing back.
+		val &= 0x7F;
+		m_bHBlankDMAInProgress = true;
+
+		//Write value to register with bit 7 masked off.
+		m_gbmemory->direct_write(ADDRESS_HDMA5, val & 0x7F);
 	}
 }
 
 //Gets whether or not GBC mode HBlank DMA is active.
 bool GBLCD::isHBlankDMATransferActive() {
-	bool toReturn = false;
-
-	//HBlank DMA only occures on GBC
-	if (m_gbmemory->getGBCMode()) {
-		//Check if the HBlank DMA flag is set.
-		toReturn = (m_gbmemory->direct_read(ADDRESS_HDMA5) & GBC_DMA_MODE) > 0;
-	}
-
-	return toReturn;
+	return m_bHBlankDMAInProgress;
 }
 
 //Performs GBC mode VRam DMA
@@ -765,23 +794,30 @@ void GBLCD::performDMATransferGBC(){
 	//if (isHBlankDMATransferActive()) return;
 
 	//In HDMA transfer, only 0x10 bytes can be tranfered at once.
-	uint8_t length = (isHBlankDMATransferActive() ? 0x10 : hdmaLength);
+	uint16_t length = (isHBlankDMATransferActive() ? 0x10 : m_hdmaLength);
 
 	//Copy bytes
-	for (uint8_t currentByte = 0; currentByte < length; currentByte++) {
-		m_gbmemory->direct_write(hdmaDestinationAddress + currentByte, m_gbmemory->read(hdmaSourceAddress + currentByte));
+	for (uint16_t currentByte = 0; currentByte < length; currentByte++) {
+		m_gbmemory->direct_write(m_hdmaDestinationAddress + currentByte, m_gbmemory->read(m_hdmaSourceAddress + currentByte));
 	}
 
 	//If this is an HBlank transfer, need to save current progress or set done flag.
 	if (isHBlankDMATransferActive()) {
 		//Adjust source address and length for next call if HBlank transfer.
-		hdmaSourceAddress += length;
-		hdmaLength -= length;
+		m_hdmaSourceAddress += length;
+		m_hdmaDestinationAddress += length;
+		m_hdmaLength -= length;
 
 		//If there are no bytes left to copy, clear HBlank DMA flag.
-		if (!hdmaLength) {
+		if (!m_hdmaLength) {
 			//Only bit 7 must be 0, but rest of bits are undefined.
-			m_gbmemory->direct_write(ADDRESS_HDMA5, 0);
+			m_gbmemory->direct_write(ADDRESS_HDMA5, 0xFF);
+			m_bHBlankDMAInProgress = false;
+			std::cout << "HBlank DMA Transfer complete" << std::endl;
+		} else {
+			//Write the number or remaining bytes
+			length = ((m_hdmaLength / 0x10) - 1);
+			m_gbmemory->direct_write(ADDRESS_HDMA5, length & 0x7F);
 		}
 	} else {
 		//Need to set HDMA5 register to 0xFF to indicate completion.
