@@ -18,24 +18,35 @@ void GBAudio::tick(long long hz){
     uint8_t* mixedBuffer = new uint8_t[hz];
     uint16_t currentNote = 0;
     uint16_t mixedNote = 0;
-
-    currentNote = tickSquare1(tempBuffer, hz);
-    m_player->mixNotes(&currentNote, &mixedNote, 1);
-
-    currentNote = tickSquare2(tempBuffer, hz);
-    m_player->mixNotes(&currentNote, &mixedNote, 1);
-
-    currentNote = tickWave(tempBuffer, hz);
-    m_player->mixNotes(&currentNote, &mixedNote, 1);
-    
-    currentNote = tickNoise(tempBuffer, hz);
-    m_player->mixNotes(&currentNote, &mixedNote, 1);
-
+	uint16_t square1Note = 0;
+	uint16_t square2Note = 0;
+	uint16_t waveNote = 0;
+	uint16_t noiseNote = 0;
+	
     uint32_t skip = (CLOCK_GB * MHZ_TO_HZ) / m_player->getSampleRate() / 2;
     if ((rollover + hz) >= skip) {
+		
+		currentNote = tickSquare1(tempBuffer, hz);
+		m_player->mixNotes(&currentNote, &mixedNote, 1);
+
+		currentNote = tickSquare2(tempBuffer, hz);
+		m_player->mixNotes(&currentNote, &mixedNote, 1);
+
+		currentNote = tickWave(tempBuffer, hz);
+		m_player->mixNotes(&currentNote, &mixedNote, 1);
+
+		currentNote = tickNoise(tempBuffer, hz);
+		m_player->mixNotes(&currentNote, &mixedNote, 1);
+		
         m_player->addNote(mixedNote*500, 1);
         rollover = rollover + hz - skip;
     } else {
+		
+		tickSquare1(tempBuffer, hz);
+		tickSquare2(tempBuffer, hz);
+		tickWave(tempBuffer, hz);
+		tickNoise(tempBuffer, hz);
+		
         rollover += hz;
     }
 
@@ -49,8 +60,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
     static long long frequencyRollover = 0;
     static long long lengthRollover = 0;
     static uint8_t nextDutyIndex = 0;
-    //return;
-    //m_square2LengthCounter -= hz;
 
     //When length is decremented to 0, channel is disabled. 
     //On length counter hitting 0, set volume to 0 but do not cease generation of data!
@@ -78,8 +87,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
     //Only getting a small portion of what we want?
     uint8_t note = 0;
     if (bChannelEnabled) {
-        //TODO - see if making this a loop and continually adding notes, 
-        //and then making notes for the remainder of the hz fixes stutter.
 
         if (hz >= m_square1FrequencyTimer) {
            
@@ -106,7 +113,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
     } 
 
     if (true || hz < 100000) {
-        //m_player->addNote(note, hz);
         memset(buffer, note, hz);
     }
 
@@ -118,8 +124,6 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
     static long long frequencyRollover = 0;
     static long long lengthRollover = 0;
     static uint8_t nextDutyIndex = 0;
-    //return;
-    //m_square2LengthCounter -= hz;
 
     //When length is decremented to 0, channel is disabled. 
     //On length counter hitting 0, set volume to 0 but do not cease generation of data!
@@ -172,7 +176,6 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
     }
     
     if (true || hz < 100000) {
-        //m_player->addNote(note, hz);
         memset(buffer, note, hz);
     }
 
@@ -187,8 +190,6 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
     static uint8_t sampleByteIndex = 0;
     static bool bFirstByteSample = true;
 
-    //return;
-    //m_square2LengthCounter -= hz;
 
     //When length is decremented to 0, channel is disabled. 
     //On length counter hitting 0, set volume to 0 but do not cease generation of data!
@@ -224,30 +225,13 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
 
         if (hz >= m_waveFrequencyTimer) {
             while (hz >= m_waveFrequencyTimer && m_waveFrequencyTimer >= 0) {
-                if (bFirstByteSample) {
-                    bFirstByteSample = false;
-                } else {
-                    sampleByteIndex = (sampleByteIndex + 1) % 16;
+                if (!bFirstByteSample) {
+					sampleByteIndex = (sampleByteIndex + 1) % 16;
                 }
 
                 note = 0x0F & m_gbmemory->direct_read(ADDRESS_WAVE_TABLE_DATA_START + sampleByteIndex + (bFirstByteSample ? 0 : 1));
-
-                //Adjust note volume based on NR32
-                switch ((getNR32() >> 5) & 0x11) {
-                    case 0x00: //Note is silent
-                        note = note >> 4;
-                        break;
-                    case 0x01: //Note is full volume
-                        break;
-                    case 0x10: //Note is half volme
-                        note = note >> 1;
-                        break;
-                    case 0x11: //Note is 25% volume
-                        note = note >> 2;
-                        break;
-                    default:
-                        std::cout << "Invalid wave channel volume!" << std::endl;
-                }
+				
+				bFirstByteSample = !bFirstByteSample;
 
                 memset(buffer, note, m_waveFrequencyTimer);
                 buffer += m_waveFrequencyTimer;
@@ -256,6 +240,8 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
                 m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
             }
 
+
+
         } else {
             m_waveFrequencyTimer -= hz;
         }
@@ -263,20 +249,20 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
         note = 0x0F & m_gbmemory->direct_read(ADDRESS_WAVE_TABLE_DATA_START + sampleByteIndex + (bFirstByteSample ? 0 : 1));
 
         //Adjust note volume based on NR32
-        switch ((getNR32() >> 5) & 0x11) {
+        switch ((getNR32() >> 5) & 0x3) {
         case 0x00: //Note is silent
-            note = note >> 4;
+			note =  note >> 4;
             break;
         case 0x01: //Note is full volume
             break;
-        case 0x10: //Note is half volme
+        case 0x02: //Note is half volme
             note = note >> 1;
             break;
-        case 0x11: //Note is 25% volume
+        case 0x03: //Note is 25% volume
             note = note >> 2;
             break;
         default:
-            std::cout << "Invalid wave channel volume!" << std::endl;
+            std::cout << "Invalid wave channel volume " << +((getNR32() >> 5) & 0x3) << std::endl;
         }
 
     }
@@ -640,7 +626,7 @@ uint8_t GBAudio::getNR32(){
 void GBAudio::setNR33(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR33, val);
     //Copied, adapted from Square 2
-    m_waveFrequency = (0x0700 & m_waveFrequency) | (val & 0xFF);
+    m_waveFrequency = (0x700 & m_waveFrequency) | (val & 0xFF);
     m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
 }
 
@@ -658,13 +644,12 @@ void GBAudio::setNR34(uint8_t val){
 
         //Check if length counter is 0, set to length load if so.
         if (m_waveLengthCounter == 0) {
-            m_square2LengthCounter = 256;
+            /*m_square2LengthCounter*/m_waveLengthCounter = 256;
         }
 
-        //Load frequency timer with period (from NR22?)
-        //m_square2FrequencyTimer = getNR22() & CHANNEL_PERIOD;
+        //Load frequency timer with period
         m_waveFrequency = (((uint16_t)val & 0x0007) << 8) | (m_waveFrequency & 0x00FF);
-        m_waveFrequencyTimer = (2048 - m_square2Frequency) * 2;
+        m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
 
 
         //Check if channel DAC is off and disable self again if so.
@@ -676,7 +661,7 @@ void GBAudio::setNR34(uint8_t val){
     }
 
     //TL-- -FFF
-    m_gbmemory->direct_write(ADDRESS_NR34, 0xC7);
+    m_gbmemory->direct_write(ADDRESS_NR34, val & 0xC7);
 }
 
 uint8_t GBAudio::getNR34(){
