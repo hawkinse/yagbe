@@ -644,7 +644,7 @@ void GBAudio::setNR34(uint8_t val){
 
         //Check if length counter is 0, set to length load if so.
         if (m_waveLengthCounter == 0) {
-            /*m_square2LengthCounter*/m_waveLengthCounter = 256;
+            m_waveLengthCounter = 256;
         }
 
         //Load frequency timer with period
