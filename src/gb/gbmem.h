@@ -50,13 +50,17 @@
 #define ADDRESS_BCPS   0xFF68 //GBC only
 #define ADDRESS_BCPD   0xFF69 //GBC only
 #define ADDRESS_OCPS   0xFF6A //GBC only
-#define ADDRESS_VBK    0xFF4F
+#define ADDRESS_OCPD   0xFF6B
+#define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
+#define ADDRESS_VBK    0xFF4F //GBC only, VRam bank switch
 #define ADDRESS_DMA    0xFF46
 #define ADDRESS_HDMA1  0xFF51 //GBC only
 #define ADDRESS_HDMA2  0xFF52 //GBC only
 #define ADDRESS_HDMA3  0xFF53 //GBC only
 #define ADDRESS_HDMA4  0xFF54 //GBC only
 #define ADDRESS_HDMA5  0xFF55 //GBC only
+#define ADDRESS_IR	   0xFF56 //GBC only, IR port.
+#define ADDRESS_SVBK   0xFF70 //GBC only, WRAM bank
 
 //Square Wave 1 Channel Addresses
 #define ADDRESS_NR10 0xFF10
@@ -102,7 +106,7 @@
 #define ADDRESS_TAC    0xFF07
 #define ADDRESS_IF     0xFF0F
 
-#define ADDRESS_KEY1   0xFF4D //GBC only, switch speed
+
 //IR register skipped
 #define ADDRESS_SVBK   0xFF70 //GBC WRAM bank
 
@@ -119,6 +123,12 @@
 #define INTERRUPT_FLAG_SERIAL 0x8 //Bit 3
 #define INTERRUPT_FLAG_JOYPAD 0x10 //Bit 4
 
+enum Platform {
+	PLATFORM_DMG = 0,
+	PLATFORM_SGB = 1,
+	PLATFORM_GBC = 2,
+	PLATFORM_AUTO
+};
 
 class GBMem{
   private:
@@ -128,9 +138,16 @@ class GBMem{
     GBPad* m_gbpad;
     GBSerial* m_gbserial;
     
-    bool m_bVRamBank;
-    uint8_t m_WRamBank;
+	//The current platform being emulated. Currently used to see if GBC features should be enabled
+	Platform m_systemType;
+
+    uint8_t m_vRamBank;
+    uint8_t m_wRamBank; //Current work ram bank.
     
+	//GBC Speed Registers
+	bool m_bDoubleClockSpeed;
+	bool m_bPrepareForSpeedSwitch;
+
     //Timer and Divider "registers"
     uint8_t m_RegisterDIV;
     uint8_t m_RegisterTIMA;
@@ -138,17 +155,14 @@ class GBMem{
     uint8_t m_RegisterTAC;
     
     uint8_t m_mem[0xFFFF]; //Entire memory map.
-    uint8_t* m_extRamExtraBanks; //Stores all banks of extram
-    uint8_t* m_wRamBanks; //Only stores banks 1-7, since bank 0 is constant 
-    
-    void switch_bank_vram();
-    void switch_bank_wram(uint8_t bank);
-    
+    uint8_t *m_wRamBanks; //Stores ram banks 1 through 7. 4KB each, 28kb total.
+	uint8_t *m_vRamBanks; //Stores both 8kb VRam banks.
+
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);
     
   public:
-    GBMem();
+    GBMem(Platform systemType = Platform::PLATFORM_AUTO);
     ~GBMem();
     
     void write(uint16_t address, uint8_t value);
@@ -159,15 +173,34 @@ class GBMem{
     void direct_write(uint16_t address, uint8_t value);
     uint8_t direct_read(uint16_t address);
     
+	//Direct read and write for VRam banks. Needed for some LCD operations.
+	void direct_vram_write(uint16_t index, uint8_t vramBank, uint8_t value);
+	uint8_t direct_vram_read(uint16_t index, uint8_t vramBank);
+
     void loadCart(GBCart* cart);
     void setLCD(GBLCD* lcd);
     void setAudio(GBAudio* audio);
     void setPad(GBPad* pad);
     void setSerial(GBSerial* serial);
     
+	//Get whether or not we are in GBC mode
+	bool getGBCMode();
+
+	//Gets the current video ram bank
+	uint8_t getVRamBank();
+
     //Get whether or not we are reading from boot rom instead of cartridge
     bool getBootRomEnabled();
     
+	//Get current speed
+	bool getDoubleSpeedMode();
+
+	//Get whether or not the CPU can switch speeds
+	bool getPreparedForSpeedSwitch();
+
+	//Toggles the current speed
+	void toggleDouleSpeedMode();
+
     //Used to update timer registers
     void tick(long long hz);
 };

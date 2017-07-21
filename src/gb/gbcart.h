@@ -44,6 +44,10 @@
 #define RTC_BANK_DAYCOUNTER 0x0B
 #define RTC_BANK_FLAGS      0x0C
 
+#define CART_PLATFORM_SGB	   0x03
+#define CART_PLATFORM_GBC_DMG  0x80
+#define CART_PLATFORM_GBC_ONLY 0xC0
+
 class GBCart{
   private:
     uint8_t* m_bootRom;
@@ -184,4 +188,10 @@ class GBCart{
     
     std::string getCartridgeTitle();
     void printCartInfo();
+
+	//Gets whether or not the cart supports GBC
+	bool cartSupportsGBC();
+
+	//Gets whether or not the cart supports SGB
+	bool cartSupportsSGB();
 };
