@@ -599,8 +599,7 @@ void GBLCD::setLCDC(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_LCDC, val);
     
     //When LCD is disabled, it switches to mode 1
-    if(!(val & LCDC_DISPLAY_ENABLE)){
-        
+    if(!(val & LCDC_DISPLAY_ENABLE)){        
         uint8_t currentSTAT = getSTAT();
         currentSTAT &= 0xFC;
         currentSTAT |= STAT_MODE1_VBLANK;
@@ -665,7 +664,15 @@ uint8_t GBLCD::getScrollX(){
 }
         
 uint8_t GBLCD::getLY(){
-    return m_gbmemory->direct_read(ADDRESS_LY);
+    uint8_t toReturn = 0;
+    
+    //Only return the actual value of LY when the display is on.
+    //Otherwise, return 0.
+    if(getLCDC() & LCDC_DISPLAY_ENABLE){
+        toReturn = m_gbmemory->direct_read(ADDRESS_LY);
+    }
+    //return m_gbmemory->direct_read(ADDRESS_LY);
+    return toReturn;
 }
 
 void GBLCD::setLY(uint8_t val){
