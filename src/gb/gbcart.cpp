@@ -393,7 +393,7 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
         }
 
         if(bAllowRamToggle){
-            m_bCartRamEnabled = ((val & CART_RAM_VALUE_ENABLED) > 0);
+            m_bCartRamEnabled = ((val & 0x0F) == CART_RAM_VALUE_ENABLED);
         }
 
 		if (CONSOLE_OUTPUT_CART) std::cout << "Cart ram is now: " << (m_bCartRamEnabled ? "enabled" : "disabled") << std::endl;
