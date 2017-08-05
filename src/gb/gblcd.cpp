@@ -323,7 +323,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
     bool bScrolledTileDrawn = false;
 
     while(bgPixelX < FRAMEBUFFER_WIDTH){
-        uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
+        uint8_t rawTileIndex = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 0);
         int tileIndex = 0;
         uint16_t tilePatternAddress = 0;
         
@@ -397,7 +397,7 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
             tileLocation += ((getWindowX() - 7) / TILE_WIDTH);
 
             for(int bgPixelX = getWindowX() - 7; bgPixelX < FRAMEBUFFER_WIDTH; bgPixelX += TILE_WIDTH){
-                uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
+                uint8_t rawTileIndex = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 0);
                 int tileIndex = 0;
                 uint16_t tilePatternAddress = 0;
                 
