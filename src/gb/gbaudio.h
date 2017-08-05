@@ -123,6 +123,7 @@ class GBAudio{
         long long m_waveFrequency = 0;
         long long m_waveLengthCounter = 0;
         bool m_waveLengthEnable = false;
+        uint8_t m_waveSampleByteIndex = 0;
         
 
         long long m_noiseFrequencyTimer = 0;

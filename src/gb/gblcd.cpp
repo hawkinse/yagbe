@@ -323,7 +323,7 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
     bool bScrolledTileDrawn = false;
 
     while(bgPixelX < FRAMEBUFFER_WIDTH){
-        uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
+        uint8_t rawTileIndex = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 0);
         int tileIndex = 0;
         uint16_t tilePatternAddress = 0;
         
@@ -366,6 +366,9 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 				}
 
 				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
+                
+                //Set whether this pixel overrides sprite priority
+                m_gbcBGOverridesOAM[bgPixelX] |= (gbcFlags & BGMAP_ATTRIBUTE_OAM_PRIORITY) > 0;
 			}
 			else {
 				//DMG Color
@@ -397,7 +400,7 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
             tileLocation += ((getWindowX() - 7) / TILE_WIDTH);
 
             for(int bgPixelX = getWindowX() - 7; bgPixelX < FRAMEBUFFER_WIDTH; bgPixelX += TILE_WIDTH){
-                uint8_t rawTileIndex = m_gbmemory->direct_read(tileLocation);
+                uint8_t rawTileIndex = m_gbmemory->direct_vram_read(tileLocation - VRAM_START, 0);
                 int tileIndex = 0;
                 uint16_t tilePatternAddress = 0;
                 
@@ -443,6 +446,10 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
 							}
 
 							pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
+                            
+                            //Set whether this pixel overrides sprite priority
+                            m_gbcBGOverridesOAM[bgPixelX + tileX] |= (gbcFlags & BGMAP_ATTRIBUTE_OAM_PRIORITY) > 0;
+                            
 						} else {
 							pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
 						}
@@ -519,7 +526,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 							pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
 						}
                          
-                        if(!pixel.transparent){
+                        if(!pixel.transparent && !m_gbcBGOverridesOAM[renderPosX]){
 							//On Gameboy Color, when bit 0 of LCDC is cleared sprites always have priority independent of priority flags.
                             if((m_gbmemory->getGBCMode() && !(getLCDC() & LCDC_BG_DISPLAY)) || !(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || frameBuffer[renderPosX][getLY()].transparent){
                                 frameBuffer[renderPosX][getLY()] = pixel;
@@ -537,6 +544,9 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 //Renders the current line indicated by LY
 void GBLCD::renderLine(){
     RGBColor** buffer = getNextUnfinishedFrame();
+    
+    //Clear gbc background priority over sprites
+    memset(m_gbcBGOverridesOAM, 0, sizeof(bool) * FRAMEBUFFER_WIDTH);
     
     //Check if background is enabled and render if so.
     if((getLCDC() & LCDC_BG_DISPLAY)){ 
@@ -599,8 +609,7 @@ void GBLCD::setLCDC(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_LCDC, val);
     
     //When LCD is disabled, it switches to mode 1
-    if(!(val & LCDC_DISPLAY_ENABLE)){
-        
+    if(!(val & LCDC_DISPLAY_ENABLE)){        
         uint8_t currentSTAT = getSTAT();
         currentSTAT &= 0xFC;
         currentSTAT |= STAT_MODE1_VBLANK;
@@ -665,7 +674,15 @@ uint8_t GBLCD::getScrollX(){
 }
         
 uint8_t GBLCD::getLY(){
-    return m_gbmemory->direct_read(ADDRESS_LY);
+    uint8_t toReturn = 0;
+    
+    //Only return the actual value of LY when the display is on.
+    //Otherwise, return 0.
+    if(getLCDC() & LCDC_DISPLAY_ENABLE){
+        toReturn = m_gbmemory->direct_read(ADDRESS_LY);
+    }
+    //return m_gbmemory->direct_read(ADDRESS_LY);
+    return toReturn;
 }
 
 void GBLCD::setLY(uint8_t val){
@@ -741,10 +758,10 @@ void GBLCD::startDMATransfer(uint8_t address){
 }
      
 void GBLCD::startDMATransferGBC(uint8_t val) {
-	//std::cout << "Unimplemented GBC DMA transfer!" << std::endl;
 	//Correct src and dest addresses so that they ignore the first four bits.
+    //Destination address also ignores the upper 3 bits.
 	m_hdmaSourceAddress = (m_gbmemory->read(ADDRESS_HDMA1) << 8 | m_gbmemory->read(ADDRESS_HDMA2)) & 0xFFF0;
-	m_hdmaDestinationAddress = (m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0xFFF0;
+	m_hdmaDestinationAddress = ((m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0x1FF0) + VRAM_START;
 
 	//Length is stored in lower 7 bits, divided by 0x10 and subtracted by 1.
 	m_hdmaLength = ((val & 0x7F) + 1) * 0x10;
@@ -753,27 +770,14 @@ void GBLCD::startDMATransferGBC(uint8_t val) {
 	//HBlank transfers will be triggered in next HBlank.
 	if (!(val & GBC_DMA_MODE)) {
 		if (m_bHBlankDMAInProgress) {
-			std::cout << "HBlank DMA canceled!" << std::endl;
 			m_bHBlankDMAInProgress = false;
 			//Report to game that DMA has been canceled
 			m_gbmemory->direct_write(ADDRESS_HDMA5, val | GBC_DMA_MODE);
 		} else {
-			std::cout << "GBC General DMA Transfer!" << std::endl;
-			performDMATransferGBC();
-
-			//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
-			//Possibly due to unimplemented VRam bank switching + tile support?
-			/*
-			for (uint16_t index = 0; index < m_hdmaLength; index++) {
-			m_gbmemory->direct_write(m_hdmaDestinationAddress + index, m_gbmemory->read(m_hdmaSourceAddress + index));
-
-			}*/
-			
+			performDMATransferGBC();			
 		}
 	}
 	else {
-		//std::cout << "Unimplemented GBC HBlank DMA Transfer!" << std::endl;
-		std::cout << "GBC HBlank DMA Transfer started" << std::endl;
 		//Clear HBlank flag before writing back.
 		val &= 0x7F;
 		m_bHBlankDMAInProgress = true;
@@ -790,8 +794,6 @@ bool GBLCD::isHBlankDMATransferActive() {
 
 //Performs GBC mode VRam DMA
 void GBLCD::performDMATransferGBC(){
-	//for now, ignore HBlank DMA
-	//if (isHBlankDMATransferActive()) return;
 
 	//In HDMA transfer, only 0x10 bytes can be tranfered at once.
 	uint16_t length = (isHBlankDMATransferActive() ? 0x10 : m_hdmaLength);

@@ -187,7 +187,6 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
     //Two counters: Length and frequency.
     static long long frequencyRollover = 0;
     static long long lengthRollover = 0;
-    static uint8_t sampleByteIndex = 0;
     static bool bFirstByteSample = true;
 
 
@@ -226,15 +225,10 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
         if (hz >= m_waveFrequencyTimer) {
             while (hz >= m_waveFrequencyTimer && m_waveFrequencyTimer >= 0) {
                 if (!bFirstByteSample) {
-					sampleByteIndex = (sampleByteIndex + 1) % 16;
+					m_waveSampleByteIndex = (m_waveSampleByteIndex + 1) % 16;
                 }
-
-                note = 0x0F & m_gbmemory->direct_read(ADDRESS_WAVE_TABLE_DATA_START + sampleByteIndex + (bFirstByteSample ? 0 : 1));
-				
+                
 				bFirstByteSample = !bFirstByteSample;
-
-                memset(buffer, note, m_waveFrequencyTimer);
-                buffer += m_waveFrequencyTimer;
 
                 hz -= m_waveFrequencyTimer;
                 m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
@@ -246,7 +240,13 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
             m_waveFrequencyTimer -= hz;
         }
 
-        note = 0x0F & m_gbmemory->direct_read(ADDRESS_WAVE_TABLE_DATA_START + sampleByteIndex + (bFirstByteSample ? 0 : 1));
+        note = m_gbmemory->direct_read(ADDRESS_WAVE_TABLE_DATA_START + m_waveSampleByteIndex);
+				
+        if(bFirstByteSample){
+            note = note >> 4;
+        }
+                
+        note &= 0x0F;
 
         //Adjust note volume based on NR32
         switch ((getNR32() >> 5) & 0x3) {
@@ -658,6 +658,8 @@ void GBAudio::setNR34(uint8_t val){
             val &= ~CHANNEL_TRIGGER;
             m_waveLengthCounter = 0;
         }
+        
+        m_waveSampleByteIndex = 0;
     }
 
     //TL-- -FFF

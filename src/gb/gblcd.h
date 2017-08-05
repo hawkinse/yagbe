@@ -141,6 +141,11 @@ class GBLCD{
 		uint8_t* m_gbcBGPalettes;
 		uint8_t* m_gbcOAMPalettes;
 
+        //GBC BG/Window priorities.
+        //Because we can't reference background map tiles when rendering sprites, keep track
+        //of each pixel in current line here.
+        bool m_gbcBGOverridesOAM[FRAMEBUFFER_WIDTH];
+        
         //Used as a temporary buffer to hold a current working tile.
         //Global so we don't waste speed constantly destroying and recreating the buffer
         uint8_t m_TempTile[TILE_WIDTH];
