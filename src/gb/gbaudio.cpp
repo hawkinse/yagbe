@@ -264,7 +264,7 @@ uint8_t GBAudio::getNR51(){
 
 //Power status, channel length status
 void GBAudio::setNR52(uint8_t val){
-    m_gbmemory->direct_write(ADDRESS_NR52, val & 0x8F);
+    m_gbmemory->direct_write(ADDRESS_NR52, val & 0x80);
 }
 
 uint8_t GBAudio::getNR52(){
