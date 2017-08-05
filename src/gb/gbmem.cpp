@@ -136,7 +136,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 			
 			//Back up current bank
-			std::memcpy(&m_wRamBanks[(m_wRamBank - 1) * 0x1000], &m_mem[WRAM_BANK_1_START], sizeof(uint8_t) * (0x1000));
+			memcpy(&m_wRamBanks[(m_wRamBank - 1) * 0x1000], &m_mem[WRAM_BANK_1_START], sizeof(uint8_t) * (0x1000));
 
 			//Work ram bank is only 3 bits
 			m_wRamBank = value & 0x7;
@@ -177,7 +177,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 			//Bank switching uses a backup and restore approach, to preserve functionality of direct access functions.
 
 			//Back up current bank
-			std::memcpy(&m_vRamBanks[m_vRamBank * 0x2000], &m_mem[VRAM_START], sizeof(uint8_t) * (0x2000));
+			memcpy(&m_vRamBanks[m_vRamBank * 0x2000], &m_mem[VRAM_START], sizeof(uint8_t) * (0x2000));
 
 			//VRam bank is the first bit of the value.
 			m_vRamBank = value & 0x1;
