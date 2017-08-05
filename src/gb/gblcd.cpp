@@ -741,10 +741,10 @@ void GBLCD::startDMATransfer(uint8_t address){
 }
      
 void GBLCD::startDMATransferGBC(uint8_t val) {
-	//std::cout << "Unimplemented GBC DMA transfer!" << std::endl;
 	//Correct src and dest addresses so that they ignore the first four bits.
+    //Destination address also ignores the upper 3 bits.
 	m_hdmaSourceAddress = (m_gbmemory->read(ADDRESS_HDMA1) << 8 | m_gbmemory->read(ADDRESS_HDMA2)) & 0xFFF0;
-	m_hdmaDestinationAddress = (m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0xFFF0;
+	m_hdmaDestinationAddress = ((m_gbmemory->read(ADDRESS_HDMA3) << 8 | m_gbmemory->read(ADDRESS_HDMA4)) & 0x1FF0) + VRAM_START;
 
 	//Length is stored in lower 7 bits, divided by 0x10 and subtracted by 1.
 	m_hdmaLength = ((val & 0x7F) + 1) * 0x10;
@@ -753,27 +753,14 @@ void GBLCD::startDMATransferGBC(uint8_t val) {
 	//HBlank transfers will be triggered in next HBlank.
 	if (!(val & GBC_DMA_MODE)) {
 		if (m_bHBlankDMAInProgress) {
-			std::cout << "HBlank DMA canceled!" << std::endl;
 			m_bHBlankDMAInProgress = false;
 			//Report to game that DMA has been canceled
 			m_gbmemory->direct_write(ADDRESS_HDMA5, val | GBC_DMA_MODE);
 		} else {
-			std::cout << "GBC General DMA Transfer!" << std::endl;
-			performDMATransferGBC();
-
-			//Performing copy here instead of in performDMATransferGBC seems to work for (some) text in Pokemon Crystal.
-			//Possibly due to unimplemented VRam bank switching + tile support?
-			/*
-			for (uint16_t index = 0; index < m_hdmaLength; index++) {
-			m_gbmemory->direct_write(m_hdmaDestinationAddress + index, m_gbmemory->read(m_hdmaSourceAddress + index));
-
-			}*/
-			
+			performDMATransferGBC();			
 		}
 	}
 	else {
-		//std::cout << "Unimplemented GBC HBlank DMA Transfer!" << std::endl;
-		std::cout << "GBC HBlank DMA Transfer started" << std::endl;
 		//Clear HBlank flag before writing back.
 		val &= 0x7F;
 		m_bHBlankDMAInProgress = true;
@@ -790,8 +777,6 @@ bool GBLCD::isHBlankDMATransferActive() {
 
 //Performs GBC mode VRam DMA
 void GBLCD::performDMATransferGBC(){
-	//for now, ignore HBlank DMA
-	//if (isHBlankDMATransferActive()) return;
 
 	//In HDMA transfer, only 0x10 bytes can be tranfered at once.
 	uint16_t length = (isHBlankDMATransferActive() ? 0x10 : m_hdmaLength);
