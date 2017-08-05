@@ -366,6 +366,9 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 				}
 
 				pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
+                
+                //Set whether this pixel overrides sprite priority
+                m_gbcBGOverridesOAM[bgPixelX] |= (gbcFlags & BGMAP_ATTRIBUTE_OAM_PRIORITY) > 0;
 			}
 			else {
 				//DMG Color
@@ -443,6 +446,10 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
 							}
 
 							pixelColor = getColorGBC(m_gbcBGPalettes, gbcFlags & BGMAP_ATTRIBUTE_PALETTE, m_TempTile[orientedTileX]);
+                            
+                            //Set whether this pixel overrides sprite priority
+                            m_gbcBGOverridesOAM[bgPixelX + tileX] |= (gbcFlags & BGMAP_ATTRIBUTE_OAM_PRIORITY) > 0;
+                            
 						} else {
 							pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
 						}
@@ -519,7 +526,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 							pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
 						}
                          
-                        if(!pixel.transparent){
+                        if(!pixel.transparent && !m_gbcBGOverridesOAM[renderPosX]){
 							//On Gameboy Color, when bit 0 of LCDC is cleared sprites always have priority independent of priority flags.
                             if((m_gbmemory->getGBCMode() && !(getLCDC() & LCDC_BG_DISPLAY)) || !(spriteFlags & SPRITE_ATTRIBUTE_BGPRIORITY) || frameBuffer[renderPosX][getLY()].transparent){
                                 frameBuffer[renderPosX][getLY()] = pixel;
@@ -537,6 +544,9 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 //Renders the current line indicated by LY
 void GBLCD::renderLine(){
     RGBColor** buffer = getNextUnfinishedFrame();
+    
+    //Clear gbc background priority over sprites
+    memset(m_gbcBGOverridesOAM, 0, sizeof(bool) * FRAMEBUFFER_WIDTH);
     
     //Check if background is enabled and render if so.
     if((getLCDC() & LCDC_BG_DISPLAY)){ 
