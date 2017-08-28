@@ -231,7 +231,7 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
 				bFirstByteSample = !bFirstByteSample;
 
                 hz -= m_waveFrequencyTimer;
-                m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
+				m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
             }
 
 
@@ -265,10 +265,6 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
             std::cout << "Invalid wave channel volume " << +((getNR32() >> 5) & 0x3) << std::endl;
         }
 
-    }
-
-    if (true || hz < 100000) {
-        memset(buffer, note, hz);
     }
 
     return note;
@@ -353,11 +349,11 @@ uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
         if (hz >= m_noiseFrequencyTimer) {
             while (hz >= m_noiseFrequencyTimer && m_noiseFrequencyTimer >= 0) {
                 uint16_t xorResult = ((m_lfsr & 0x01) ^ ((m_lfsr & 0x02) >> 1));
-                m_lfsr = (m_lfsr >> 1) | (xorResult << 14);
+                m_lfsr = ((m_lfsr >> 1) & 0x3FFF) | (xorResult << 14);
 
                 if (getNR43() & 0x08) {
                     //Set sixth bit to xorResult as well
-                    m_lfsr &= ~(1 << 5) | 0x70;
+                    m_lfsr &= ~(1 << 5) /*| 0x70*/;
                     m_lfsr |= (xorResult << 5);
                 }
 
@@ -765,7 +761,7 @@ uint8_t GBAudio::getNR51(){
 
 //Power status, channel length status
 void GBAudio::setNR52(uint8_t val){
-    m_gbmemory->direct_write(ADDRESS_NR52, val & 0x8F);
+    m_gbmemory->direct_write(ADDRESS_NR52, val & 0x80);
 
     //If audio is disabled, reset everything
     if (!(val >> 7)) {
