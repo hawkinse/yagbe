@@ -17,6 +17,14 @@
 #define BUFFER_SAMPLES 2048
 #define FULL_BUFFER_SIZE 4194304
 
+//SDL Audio format to use.
+//Mac OS seems to not support Unsigned sample playback, so use signed on that platform.
+#if defined(__APPLE__)
+#define OUTPUT_AUDIO_FORMAT AUDIO_S16SYS
+#else
+#define OUTPUT_AUDIO_FORMAT AUDIO_U16SYS
+#endif
+
 
 using namespace std; 
 

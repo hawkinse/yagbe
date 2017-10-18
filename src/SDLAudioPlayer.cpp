@@ -13,7 +13,7 @@
 SDLAudioPlayer::SDLAudioPlayer(bool bUseAudioQueue) {
     SDL_AudioSpec requestedSpec;
     requestedSpec.freq = PLAYBACK_FREQUENCY;
-    requestedSpec.format = AUDIO_U16SYS;
+    requestedSpec.format = OUTPUT_AUDIO_FORMAT;
     requestedSpec.channels = 2;
     requestedSpec.samples = BUFFER_SAMPLES;
     requestedSpec.callback = (bUseAudioQueue ? NULL : sdlCallback);
