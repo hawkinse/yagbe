@@ -1,7 +1,7 @@
 #pragma once
 #include <stdlib.h>
 #include <iostream>
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <SDL.h>
 #else
 #include <SDL2/SDL.h>

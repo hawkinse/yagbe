@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <iostream>
 //SDL headers are not in an SDL2 directory on Windows
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__APPLE__)
 #include <SDL.h>
 #else
 #include <SDL2/SDL.h>

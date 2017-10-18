@@ -20,6 +20,12 @@ Yagbe (Yet Another Gameboy Emulator) is an emulator for the original 1989 Ninten
 * cmake -G "Unix Makefiles"
 * make
 
+### Mac OS Build Instructions ###
+* Install SDL2 and CMake with Brew
+* cmake -G "Xcode"
+* Open yagbe.xcodeproj
+* Command + B
+
 ### Windows Build Instructions ###
 * Launch CMake GUI
 * Enter path to source, desired project location.

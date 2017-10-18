@@ -6,6 +6,9 @@ yagbe
 Makefile
 CMakeCache.txt
 CMakeFiles/*
+CMakeScripts
+yagbe.xcodeproj
+yagbe.build
 cmake_install.cmake
 bin/*
 Win32/*
