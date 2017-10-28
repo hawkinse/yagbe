@@ -18,10 +18,6 @@ void GBAudio::tick(long long hz){
     uint8_t* mixedBuffer = new uint8_t[hz];
     uint16_t currentNote = 0;
     uint16_t mixedNote = 0;
-	uint16_t square1Note = 0;
-	uint16_t square2Note = 0;
-	uint16_t waveNote = 0;
-	uint16_t noiseNote = 0;
 	
     uint32_t skip = (CLOCK_GB * MHZ_TO_HZ) / m_player->getSampleRate() / 2;
     if ((rollover + hz) >= skip) {
@@ -38,7 +34,7 @@ void GBAudio::tick(long long hz){
 		currentNote = tickNoise(tempBuffer, hz);
 		m_player->mixNotes(&currentNote, &mixedNote, 1);
 		
-        m_player->addNote(mixedNote*500, 1);
+        m_player->addNote(mixedNote * 500, 1);
         rollover = rollover + hz - skip;
     } else {
 		
@@ -55,34 +51,84 @@ void GBAudio::tick(long long hz){
 }
 
 uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
-    //Copied verbatim from tickSquare2, aside from changing to appropriate registers. If updating square 2, make sure to update this!
-    //Two counters: Length and frequency.
-    static long long frequencyRollover = 0;
-    static long long lengthRollover = 0;
     static uint8_t nextDutyIndex = 0;
-
-    //When length is decremented to 0, channel is disabled. 
-    //On length counter hitting 0, set volume to 0 but do not cease generation of data!
-    //Length counter decrements each 256 Hz.
-    //Only decremented if length counter enabled.
-    //Check if length counter is enabled
     bool bChannelEnabled = true;
-    if (getNR14() & CHANNEL_LENGTH_ENABLE > 0) {
-        if (hz + lengthRollover >= 256) {
-            m_square1LengthCounter--;
-            if (m_square1LengthCounter == 0) {
-                bChannelEnabled = false;
-            }
-            lengthRollover = hz + lengthRollover - 256;
-        } else {
-            lengthRollover += hz;
-        }
-    }
+    
+	//Execute volume envelope
+	static long long volumeEnvelopeCounter = 0;
+	if ((getNR12() & 0x7)) {
+		m_square1VolumeEnvelopeTimer += hz;
+		
+		while (m_square1VolumeEnvelopeTimer > (64 * 512 * (getNR12() & 0x7))) {
+			if (getNR12() & 0x7) {
+				if ((getNR12() & 0x08) && (m_square1Volume < 15)) {
+					m_square1Volume++;
+				}
+				else if (!(getNR12() & 0x08) && (m_square1Volume > 0)) {
+					m_square1Volume--;
+				}
+			}
+			
+			m_square1VolumeEnvelopeTimer -= 64 * 512 * (getNR12() & 0x7) * 2; //Test * 2 to see if this fixes short note problem...
+		}
+	}
+	else {
+		volumeEnvelopeCounter = 0;
+	}
+
+    //Execute length counter
+	if ((getNR14() & 0x40)) {
+		if (m_square1LengthCounter > 0) {
+			m_square1LengthCounter -= hz;
+		}
+
+		if (m_square1LengthCounter <= 0) {
+			m_square1Volume = 0;
+		}
+	}
 
     if (bChannelEnabled && !(getNR52() >> 7)) {
         bChannelEnabled = false;
+		m_square1Volume = 0;
     }
+    
+	//Square 1 Frequency Sweep
+	m_square1FrequencySweepTimer -= hz;
+	//Only perform sweep if sweep period and shift aren't 0
+	if (m_square1FrequencySweepTimer <= 0 && (getNR10() & 0x70) && (getNR10() & 0x07)) {
+		//Documentation says adjustment is ran twice, but only first result is stored.
+		for (int checkCount = 0; checkCount < 2; checkCount++) {			
+			//New frequency is trigger frequency shifted right., optionally negated, and then added with added to the original frequency.
+			uint16_t newFrequency = m_square1Frequency >> (getNR10() & 0x7);
+			
+			//Check for negation
+			if (getNR10() & 0x8) {
+				newFrequency *= -1;
+			}
 
+			//Sum frequencies
+			newFrequency += m_square1Frequency;
+            
+			//Only keep new frequency if under 2048
+			if (newFrequency < 2048) {
+				//Only keep frequency if doing inital check.
+				if (checkCount == 0) {
+					m_square1TriggerFrequency = newFrequency;
+					m_square1Frequency = newFrequency;
+				}
+			}
+			else {
+				//Both checks can disable the channel.
+				m_square1Volume = 0;
+			}
+			
+		}
+
+		//Reload timer
+		//Add current value because current value is negative, contains unused hz.
+		m_square1FrequencySweepTimer += (128 * 512);
+	}
+    
     //Stutters and low sounds may be due to inner hz >= m_square2FrequencyTimer check being wrong, ignoring good samples
     //Only getting a small portion of what we want?
     uint8_t note = 0;
@@ -99,8 +145,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
 
                 hz -= m_square1FrequencyTimer;
                 m_square1FrequencyTimer = (2048 - m_square1Frequency) * 4;
-                //std::cout << "Duty Waveform: " << ((getNR21() >> 6) & 0x03) << std::endl;
-                //std::cout << "Duty height : " << (uint16_t)(SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex]) << std::endl;
             }
 
         } else {
@@ -112,37 +156,43 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
 
     } 
 
-    if (true || hz < 100000) {
-        memset(buffer, note, hz);
-    }
-
     return note;
 }
 
 uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
-    //Two counters: Length and frequency.
-    static long long frequencyRollover = 0;
-    static long long lengthRollover = 0;
     static uint8_t nextDutyIndex = 0;
-
-    //When length is decremented to 0, channel is disabled. 
-    //On length counter hitting 0, set volume to 0 but do not cease generation of data!
-    //Length counter decrements each 256 Hz.
-    //Only decremented if length counter enabled.
-    //Check if length counter is enabled
     bool bChannelEnabled = true;
-    if (getNR24() & CHANNEL_LENGTH_ENABLE > 0) {
-        if (hz + lengthRollover >= 256) {
-            m_square2LengthCounter--;
-            if (m_square2LengthCounter == 0) {
-                bChannelEnabled = false;
-            }
-            lengthRollover = hz + lengthRollover - 256;
-        } else {
-            lengthRollover += hz;
-        }
-    }
 
+	//Execute volume envelope
+	static long long volumeEnvelopeCounter = 0;
+	if (getNR22() & 0x07) {
+		m_square2VolumeEnvelopeTimer += hz;
+		while (m_square2VolumeEnvelopeTimer > (64 * 512 * (getNR22() & 0x07))) {
+			if ((getNR22() & 0x07)) {
+				if ((getNR22() & 0x08) && (m_square2Volume < 15)) {
+					m_square2Volume++;
+				}
+				else if (!(getNR22() & 0x08) && (m_square2Volume > 0)) {
+					m_square2Volume--;
+				}
+			}
+			m_square2VolumeEnvelopeTimer -= 64 * 512 * (getNR22() & 0x07) * 2;
+		}
+	}
+	else {
+		volumeEnvelopeCounter = 0;
+	}
+
+    //Execute length counter
+	if ((getNR24() & 0x40)) {
+		if (m_square2LengthCounter > 0) {
+			m_square2LengthCounter -= hz;
+		}
+
+		if (m_square2LengthCounter <= 0) {
+			m_square2Volume = 0;
+		}
+	}
 
     if (bChannelEnabled && !(getNR52() >> 7)) {
         bChannelEnabled = false;
@@ -161,18 +211,14 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
 
                 hz -= m_square2FrequencyTimer;
                 m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
-                //std::cout << "Duty Waveform: " << ((getNR21() >> 6) & 0x03) << std::endl;
-                //std::cout << "Duty height : " << (uint16_t)(SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex]) << std::endl;
             }
 
         } else {
             m_square2FrequencyTimer -= hz;
         }
-        
 
         note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex];
         note *= m_square2Volume;
-
     }
     
     if (true || hz < 100000) {
@@ -183,36 +229,9 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
 }
 
 uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
-    //Edited from tick square1, which was copied from tick square 2.
-    //Two counters: Length and frequency.
-    static long long frequencyRollover = 0;
-    static long long lengthRollover = 0;
+    //Samples are stored as 4-bit values, two per byte.
     static bool bFirstByteSample = true;
-
-
-    //When length is decremented to 0, channel is disabled. 
-    //On length counter hitting 0, set volume to 0 but do not cease generation of data!
-    //Length counter decrements each 256 Hz.
-    //Only decremented if length counter enabled.
-    //Check if length counter is enabled
     bool bChannelEnabled = true;
-    //Implementation is broken!
-    /*
-    if ((getNR34() & CHANNEL_LENGTH_ENABLE) > 0) {
-        if (hz + lengthRollover >= 256) {
-            if (m_waveLengthCounter > 0) {
-                m_waveLengthCounter--;
-            }
-            
-            lengthRollover = hz + lengthRollover - 256;
-        } else {
-            lengthRollover += hz;
-        }
-
-        if (m_waveLengthCounter <= 0) {
-            bChannelEnabled = false;
-        }
-    }*/
 
     if (bChannelEnabled && !(getNR52() >> 7)) {
         bChannelEnabled = false;
@@ -233,8 +252,6 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
                 hz -= m_waveFrequencyTimer;
 				m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
             }
-
-
 
         } else {
             m_waveFrequencyTimer -= hz;
@@ -264,82 +281,39 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
         default:
             std::cout << "Invalid wave channel volume " << +((getNR32() >> 5) & 0x3) << std::endl;
         }
-
     }
 
     return note;
 }
 
 uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
-    //Copied and edited form tickSquare2
-    //Two counters: Length and frequency.
-    static long long frequencyRollover = 0;
-    static long long lengthRollover = 0;
-    static long long volumeEnvelopeRollover = 0;
-    static long long volumeEnvelopeCounterRollover = 0;
     static uint8_t nextDutyIndex = 0;
-
-    //return;
-    //m_square2LengthCounter -= hz;
-
-    //When length is decremented to 0, channel is disabled. 
-    //On length counter hitting 0, set volume to 0 but do not cease generation of data!
-    //Length counter decrements each 256 Hz.
-    //Only decremented if length counter enabled.
-    //Check if length counter is enabled
     bool bChannelEnabled = true;
-    if (m_noiseLengthEnable) {
-        if ((hz + lengthRollover >= 256)) {
-            if (m_noiseLengthCounter > 0) {
-                m_noiseLengthCounter--;
-            }
-            lengthRollover = hz + lengthRollover - 256;
-        } else {
-            lengthRollover += hz;
-        }
 
-        if (m_noiseLengthCounter == 0) {
-            bChannelEnabled = false;
-            lengthRollover = 0;
-        }
-    }
+	//Execute volume envelope
+	if ((getNR42() & 0x07)) {
+		m_noiseVolumeEnvelopePeriod += hz;
+		while (m_noiseVolumeEnvelopePeriod > (64 * 512 * (getNR42() & 0x07))) {
+			if ((getNR42() & 0x07)) {
+				if ((getNR42() & 0x08) && (m_noiseVolume < 15)) {
+					m_noiseVolume++;
+				}
+				else if (!(getNR42() & 0x08) && (m_noiseVolume > 0)) {
+					m_noiseVolume--;
+				}
+			}
+			m_noiseVolumeEnvelopePeriod -= 64 * 512 * (getNR42() & 0x07) * 2;
+		}
+	}
 
-    //Apparently period drives another timer?
-    //http://www.retroisle.com/others/nintendogameboy/Technical/Firmware/GBsound.php
-
-    //Check for volume sweep
-    if (m_noiseEnvelopePeriod > 0) {
-        if ((hz + volumeEnvelopeRollover) >= 64) {
-            //signed so we can check for -1.
-            m_noiseVolumeEnvelopeCounter = CLOCK_GB / m_noiseEnvelopePeriod;
-
-            volumeEnvelopeRollover = hz + volumeEnvelopeRollover - 64;
-
-        } else {
-            volumeEnvelopeRollover += hz;
-        }
-    } else {
-        volumeEnvelopeRollover = 0;
-    }
-
-    //Execute volume sweep
-    if (volumeEnvelopeCounterRollover + hz >= m_noiseVolumeEnvelopeCounter) {
-        int8_t newVolume = m_noiseVolume;
-        if (getNR42() & 0x08) {
-            newVolume++;
-        } else {
-            newVolume--;
-        }
-
-        if (newVolume >= 0 && newVolume <= 15) {
-            m_noiseVolume = newVolume;
-        } else {
-            m_noiseEnvelopePeriod = 0;
-        }
-
-        //m_noiseVolumeEnvelopeCounter = CLOCK_GB / m_noiseEnvelopePeriod;
-    }
-
+	//Execute Length Counter
+	if (getNR44() & 0x40) {
+		m_noiseLengthCounter -= hz;
+		if (m_noiseLengthCounter <= 0) {
+			m_noiseVolume = 0;
+		}
+	}
+	
     if (bChannelEnabled && !(getNR52() >> 7)) {
         bChannelEnabled = false;
     }
@@ -353,33 +327,28 @@ uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
 
                 if (getNR43() & 0x08) {
                     //Set sixth bit to xorResult as well
-                    m_lfsr &= ~(1 << 5) /*| 0x70*/;
+                    m_lfsr &= ~(1 << 5);
                     m_lfsr |= (xorResult << 5);
                 }
 
                 note = (~m_lfsr & 0x1) * m_noiseVolume;
 
-                //m_player->addNote(note, m_square2FrequencyTimer);
                 memset(buffer, note, nextDutyIndex);
                 buffer += m_noiseFrequencyTimer;
 
                 hz -= m_noiseFrequencyTimer;
                 m_noiseFrequencyTimer = getNoiseDivisor() << ((getNR43() & 0xF0) >> 4);
-                //std::cout << "Duty Waveform: " << ((getNR21() >> 6) & 0x03) << std::endl;
-                //std::cout << "Duty height : " << (uint16_t)(SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex]) << std::endl;
             }
 
         } else {
             m_noiseFrequencyTimer -= hz;
         }
 
-        //Only output if bit 6 is set?
         note = (~m_lfsr & 0x1) * m_noiseVolume;
 
     }
 
     if (true || hz < 100000) {
-        //m_player->addNote(note, hz);
         memset(buffer, note, hz);
     }
 
@@ -431,6 +400,7 @@ void GBAudio::setPlayer(IAudioPlayer* player){
 void GBAudio::setNR10(uint8_t val){
     //Leftmost bit is unused
     m_gbmemory->direct_write(ADDRESS_NR10, val & 0x7F);
+	m_square1FrequencySweepTimer = 128 * 512 * ((val >> 4) & 0x07);
 }
 
 uint8_t GBAudio::getNR10(){
@@ -440,6 +410,7 @@ uint8_t GBAudio::getNR10(){
 //Duty, length load
 void GBAudio::setNR11(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR11, val);
+	m_square1LengthCounter = (val & 0x3F) * 256 * 512;
 }
 
 uint8_t GBAudio::getNR11(){
@@ -449,6 +420,8 @@ uint8_t GBAudio::getNR11(){
 //Starting volume, envelope mode, period
 void GBAudio::setNR12(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR12, val);
+	m_square1VolumeEnvelopeTimer = 0;
+	m_square1Volume = (val & 0xF0) >> 4;
 }
 
 uint8_t GBAudio::getNR12(){
@@ -458,7 +431,6 @@ uint8_t GBAudio::getNR12(){
 //Frequency low byte
 void GBAudio::setNR13(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR13, val);
-    //Copied, edited from setNR23
     m_square1Frequency = (0x0700 & m_square1Frequency) | (val & 0xFF);
     m_square1FrequencyTimer = (2048 - m_square1Frequency) * 4;
 }
@@ -469,43 +441,42 @@ uint8_t GBAudio::getNR13(){
 
 //trigger, has length, frequency high byte
 void GBAudio::setNR14(uint8_t val){
+	//TL-- -FFF
+	m_gbmemory->direct_write(ADDRESS_NR14, val & 0xC7);
+
+	//Check if length counter is 0, set to length load if so.
+	if (m_square1LengthCounter == 0) {
+		m_square1LengthCounter = (getNR11() & 0x3F) * 256 * 512;//64;
+	}
+
+	m_square1Frequency = (((uint16_t)val & 0x0007) << 8) | (m_square1Frequency & 0x00FF);
+	m_square1FrequencyTimer = (2048 - m_square1Frequency) * 4;
+
+	//Load channel volume from NR22
+	m_square1Volume = (getNR12() & CHANNEL_VOLUME_START) >> 4;
+
+	//Set up frequency sweep variables
+	m_square1TriggerFrequency = m_square1Frequency;
+    m_square1FrequencySweepTimer = 128 * 512;
+
+
+	//Check if channel DAC is off and disable self again if so.
+	//DAC is checked using upper 5 bits of NR22
+	if (!(getNR12() & (CHANNEL_VOLUME_START | CHANNEL_ENVELOPE))) {
+		m_square1Triggered = false;
+		val &= ~CHANNEL_TRIGGER;
+		m_square1LengthCounter = 0;
+		m_square1Triggered = false;
+	}
+
     //Coppied, edited from setNR24
     //Check if trigger is being set
     if (val & CHANNEL_TRIGGER) {
         m_square1Triggered = true;
-        //Enable channel, see length counter documentation
 
-        //Check if length counter is 0, set to length load if so.
-        if (m_square1LengthCounter == 0) {
-            m_square1LengthCounter = 64;
-        }
-
-        //Load frequency timer with period (from NR22?)
-        //m_square2FrequencyTimer = getNR22() & CHANNEL_PERIOD;
-        m_square1Frequency = (((uint16_t)val & 0x0007) << 8) | (m_square1Frequency & 0x00FF);
-        m_square1FrequencyTimer = (2048 - m_square1Frequency) * 4;
-
-        //Load volume envelope timer with period (from NR22?)
-        m_square1VolumeEnvelopeTimer = getNR12() & CHANNEL_PERIOD;//m_square2FrequencyTimer;
-
-                                                                  //Load channel volume from NR22
-        m_square1Volume = (getNR12() & CHANNEL_VOLUME_START) >> 4;
-
-        //Other channel specific stuff... none to worry about with Square 2.
-
-        //Check if channel DAC is off and disable self again if so.
-        //DAC is checked using upper 5 bits of NR22
-        if (!(getNR12() & (CHANNEL_VOLUME_START | CHANNEL_ENVELOPE))) {
-            m_square1Triggered = false;
-            val &= ~CHANNEL_TRIGGER;
-            m_square1LengthCounter = 0;
-            m_square1Triggered = false;
-        }
+		//Set up frequency sweep variables
+		m_square1TriggerFrequency = m_square1Frequency;
     }
-
-
-    //TL-- -FFF
-    m_gbmemory->direct_write(ADDRESS_NR14, val & 0xC7);
 }
 
 uint8_t GBAudio::getNR14(){
@@ -517,6 +488,7 @@ uint8_t GBAudio::getNR14(){
 //Duty, length load
 void GBAudio::setNR21(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR21, val);
+	m_square2LengthCounter = (val & 0x3F) * 256 * 512;
 }
 
 uint8_t GBAudio::getNR21(){
@@ -526,6 +498,8 @@ uint8_t GBAudio::getNR21(){
 //Start volume, envelope mode, period
 void GBAudio::setNR22(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR22, val);
+	m_square2VolumeEnvelopeTimer = 0;
+	m_square2Volume = (val & 0xF0) >> 4;
 }
 
 uint8_t GBAudio::getNR22(){
@@ -545,15 +519,36 @@ uint8_t GBAudio::getNR23(){
 
 //Trigger, has length, frequency high byte
 void GBAudio::setNR24(uint8_t val){
+	//TL-- -FFF
+	m_gbmemory->direct_write(ADDRESS_NR24, val & 0xC7);
+
+	//Check if length counter is 0, set to length load if so.
+	if (m_square2LengthCounter == 0) {
+		m_square2LengthCounter = (getNR21() & 0x3F) * 256 * 512;
+	}
+
+	//Load frequency timer with period
+	m_square2Frequency = (((uint16_t)val & 0x0007) << 8) | (m_square2Frequency & 0x00FF);
+	m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
+    
+	//Load channel volume from NR22
+	m_square2Volume = (getNR22() & CHANNEL_VOLUME_START) >> 4;
+
+	//Check if channel DAC is off and disable self again if so.
+	//DAC is checked using upper 5 bits of NR22
+	if (!(getNR22() & (CHANNEL_VOLUME_START | CHANNEL_ENVELOPE))) {
+		m_square2Triggered = false;
+		val &= ~CHANNEL_TRIGGER;
+		m_square2LengthCounter = 0;
+		m_square2Triggered = false;
+	}
+
     //Check if trigger is being set
     if(val & CHANNEL_TRIGGER){
         m_square2Triggered = true;
+        //TODO - See if commented out sutff can be deleted before committing to branch!
+        /*
         //Enable channel, see length counter documentation
-        
-        //Check if length counter is 0, set to length load if so.
-        if(m_square2LengthCounter == 0){
-            m_square2LengthCounter = 64;
-        }
         
         //Load frequency timer with period (from NR22?)
         //m_square2FrequencyTimer = getNR22() & CHANNEL_PERIOD;
@@ -561,7 +556,7 @@ void GBAudio::setNR24(uint8_t val){
         m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
 
         //Load volume envelope timer with period (from NR22?)
-        m_square2VolumeEnvelopeTimer = getNR22() & CHANNEL_PERIOD;//m_square2FrequencyTimer;
+        //m_square2VolumeEnvelopeTimer = getNR22() & CHANNEL_PERIOD;//m_square2FrequencyTimer;
         
         //Load channel volume from NR22
         m_square2Volume = (getNR22() & CHANNEL_VOLUME_START) >> 4;
@@ -576,11 +571,8 @@ void GBAudio::setNR24(uint8_t val){
             m_square2LengthCounter = 0;
             m_square2Triggered = false;
         }
-    }
-    
-    //TL-- -FFF
-    m_gbmemory->direct_write(ADDRESS_NR24, val & 0xC7);
-    
+         */
+    }    
 }
 
 uint8_t GBAudio::getNR24(){
@@ -602,6 +594,7 @@ uint8_t GBAudio::getNR30(){
 //Length load
 void GBAudio::setNR31(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR31, val);
+	m_waveLengthCounter = 1 * 512 * 256;
 }
 
 uint8_t GBAudio::getNR31(){
@@ -618,12 +611,12 @@ uint8_t GBAudio::getNR32(){
     return m_gbmemory->direct_read(ADDRESS_NR32);
 }
 
+uint8_t m_waveFrequencyNextLow;
 //Frequency low byte
 void GBAudio::setNR33(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR33, val);
-    //Copied, adapted from Square 2
-    m_waveFrequency = (0x700 & m_waveFrequency) | (val & 0xFF);
-    m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
+    m_waveFrequency = (0x0700 & m_waveFrequency) | ((uint16_t)val & 0x00FF);
+	m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
 }
 
 uint8_t GBAudio::getNR33(){
@@ -632,10 +625,23 @@ uint8_t GBAudio::getNR33(){
 
 //Trigger, has length, frequency high byte
 void GBAudio::setNR34(uint8_t val){
-    //Code adapted from setNR24
+	//TL-- -FFF
+	m_gbmemory->direct_write(ADDRESS_NR34, val & 0xC7);
+
+	m_waveFrequency = 0x7FF & (((uint16_t)val) << 8) | ((uint16_t)getNR33() & 0x00FF);
+	m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
+	
+	//Check if length counter is 0, set to length load if so.
+	if (m_waveLengthCounter == 0) {
+		m_waveLengthCounter = 1 * 512 * 256;
+	}
+
     //Check if trigger is being set
     if (val & CHANNEL_TRIGGER) {
         m_waveTriggered = true;
+        
+        //TODO - See if things still work when this is commented out before commit
+        /*
         //Enable channel, see length counter documentation
 
         //Check if length counter is 0, set to length load if so.
@@ -644,7 +650,8 @@ void GBAudio::setNR34(uint8_t val){
         }
 
         //Load frequency timer with period
-        m_waveFrequency = (((uint16_t)val & 0x0007) << 8) | (m_waveFrequency & 0x00FF);
+        //m_waveFrequency = (((uint16_t)val & 0x0007) << 9) | (m_waveFrequency & 0x00FF);
+		m_waveFrequency = (((uint16_t)val & 0x0007) << 8) | ((uint16_t)getNR33() & 0x00FF);
         m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
 
 
@@ -654,12 +661,10 @@ void GBAudio::setNR34(uint8_t val){
             val &= ~CHANNEL_TRIGGER;
             m_waveLengthCounter = 0;
         }
+        */
         
         m_waveSampleByteIndex = 0;
     }
-
-    //TL-- -FFF
-    m_gbmemory->direct_write(ADDRESS_NR34, val & 0xC7);
 }
 
 uint8_t GBAudio::getNR34(){
@@ -672,6 +677,7 @@ uint8_t GBAudio::getNR34(){
 void GBAudio::setNR41(uint8_t val){
     //--LL LLLL
     m_gbmemory->direct_write(ADDRESS_NR41, val & 0x3F);
+	m_noiseLengthCounter = 1 * 512 * 256;
 }
 
 uint8_t GBAudio::getNR41(){
@@ -681,6 +687,8 @@ uint8_t GBAudio::getNR41(){
 //Starting volume, envelope mode, period
 void GBAudio::setNR42(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR42, val);
+	m_noiseVolumeEnvelopePeriod = 0;
+	m_noiseVolume = (val & CHANNEL_VOLUME_START) >> 4;
 }
 
 uint8_t GBAudio::getNR42(){
@@ -698,29 +706,25 @@ uint8_t GBAudio::getNR43(){
 
 //Trigger, has length
 void GBAudio::setNR44(uint8_t val){
+	//TL-- ----
+	m_gbmemory->direct_write(ADDRESS_NR44, val & 0xC0);
+
+	m_noiseFrequencyTimer = getNoiseDivisor() << ((getNR43() & 0xF0) >> 4);
+
+	if (m_noiseLengthCounter == 0) {
+		m_noiseLengthCounter = 64 * 512 * 256;
+	}
+
+	//Reset noise LFSR
+	m_lfsr = 0x7FFF;
+
+	m_noiseLengthEnable = (val & CHANNEL_LENGTH_ENABLE) > 0;
+
     //Adapted from setNR24
     //Check if trigger is being set
     if (val & CHANNEL_TRIGGER) {
         m_noiseTriggered = true;
-        //Enable channel, see length counter documentation
-
-        //Check if length counter is 0, set to length load if so.
         
-        if (m_noiseLengthCounter == 0) {
-            m_noiseLengthCounter = 64;
-        }
-
-        m_noiseFrequencyTimer = getNoiseDivisor() << ((getNR43() & 0xF0) >> 4);
-
-
-        m_noiseVolume = (getNR42() & CHANNEL_VOLUME_START) >> 4;
-
-        m_noiseVolumeEnvelopeCounter = 64;
-        m_noiseEnvelopePeriod = getNR42() & 0x07;
-        m_lfsr = 0x7FFF;
-
-        m_noiseLengthEnable = (val & CHANNEL_LENGTH_ENABLE) > 0;
-
         //Check if channel DAC is off and disable self again if so.
         //DAC is checked using upper 5 bits of NR22
         if (!(getNR42() & (CHANNEL_VOLUME_START | CHANNEL_ENVELOPE))) {
@@ -730,9 +734,6 @@ void GBAudio::setNR44(uint8_t val){
             m_noiseVolume = 0;
         }
     }
-
-    //TL-- ----
-    m_gbmemory->direct_write(ADDRESS_NR44, 0xC0);
 }
 
 uint8_t GBAudio::getNR44(){

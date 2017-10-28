@@ -25,7 +25,6 @@
 #define OUTPUT_AUDIO_FORMAT AUDIO_U16SYS
 #endif
 
-
 using namespace std; 
 
 //DO NOT like making this global, but apparently SDL needs this? Refuses to compile otherwise!

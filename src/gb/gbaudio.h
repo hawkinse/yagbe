@@ -84,10 +84,6 @@ class GBAudio{
         
         GBMem* m_gbmemory;
         IAudioPlayer* m_player;
-        unsigned long long m_square1Time;
-        unsigned long long m_square2Time;
-        unsigned long long m_waveTime;
-        unsigned long long m_NoiseTime;
         
         bool m_square1Triggered;
         bool m_square2Triggered;
@@ -96,50 +92,34 @@ class GBAudio{
         
         //Are globals needed? What happens if a value changes after being triggered?
         uint8_t m_square1Duty;
-        uint8_t m_square1LengthLoad;
-        uint8_t m_square1StartVolume;
         uint16_t m_square1Frequency;
-        bool m_square1LengthEnable = false;
-
         long long m_square1FrequencyTimer = 0;
         long long m_square1VolumeEnvelopeTimer = 0;
         long long m_square1LengthCounter = 0;
-        uint8_t m_square1EnvelopePeriod = 0;
         uint8_t m_square1Volume = 0;
+		uint16_t m_square1TriggerFrequency = 0;
+		long long m_square1FrequencySweepTimer = 0;
+
 
         uint8_t m_square2Duty;
-        uint8_t m_square2LengthLoad;
-        uint8_t m_square2StartVolume;
         uint16_t m_square2Frequency;
-        bool m_square2LengthEnable = false;
-        
         long long m_square2FrequencyTimer = 0;
         long long m_square2VolumeEnvelopeTimer = 0;
         long long m_square2LengthCounter = 0;
         uint8_t m_square2Volume = 0;
-        uint8_t m_square2EnvelopePeriod = 0;
 
         long long m_waveFrequencyTimer = 0;
-        long long m_waveFrequency = 0;
+        uint16_t m_waveFrequency = 0;
         long long m_waveLengthCounter = 0;
-        bool m_waveLengthEnable = false;
         uint8_t m_waveSampleByteIndex = 0;
-        
 
         long long m_noiseFrequencyTimer = 0;
         long long m_noiseFrequency = 0;
         long long m_noiseLengthCounter = 0;
-        long long m_noiseVolumeEnvelopeCounter = 0;
         uint8_t m_noiseVolume = 0;
-        uint8_t m_noiseEnvelopePeriod = 0;
+        long long m_noiseVolumeEnvelopePeriod = 0;
         bool m_noiseLengthEnable = false;
         uint16_t m_lfsr = 0;
-
-        //Current note that should be played for each channel
-        uint8_t m_square1Note = 0;
-        uint8_t m_square2Note = 0;
-        uint8_t m_waveNote = 0;
-        uint8_t m_noiseNote = 0;
 
         uint16_t tickSquare1(uint8_t* buffer, long long hz);
         uint16_t tickSquare2(uint8_t* buffer, long long hz);

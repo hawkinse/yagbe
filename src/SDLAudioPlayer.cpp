@@ -101,8 +101,6 @@ void SDLAudioPlayer::play(long long hz) {
             }
 
             SDL_QueueAudio(1, soundBuffer + (bufferSize - BUFFER_SAMPLES), BUFFER_SAMPLES * sizeof(uint16_t));
-            //memcpy(soundBuffer, soundBuffer + bufferSize, bufferSize - BUFFER_SAMPLES);
-            //bufferSize = bufferSize - BUFFER_SAMPLES;
             memset(soundBuffer, 0, bufferSize * sizeof(uint16_t));
             bufferSize = 0;
         }
