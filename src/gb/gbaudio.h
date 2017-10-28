@@ -121,10 +121,10 @@ class GBAudio{
         bool m_noiseLengthEnable = false;
         uint16_t m_lfsr = 0;
 
-        uint16_t tickSquare1(uint8_t* buffer, long long hz);
-        uint16_t tickSquare2(uint8_t* buffer, long long hz);
-        uint16_t tickWave(uint8_t* buffer, long long hz);
-        uint16_t tickNoise(uint8_t* buffer, long long hz);
+        uint16_t tickSquare1(long long hz);
+        uint16_t tickSquare2(long long hz);
+        uint16_t tickWave(long long hz);
+        uint16_t tickNoise(long long hz);
 
         uint8_t getNoiseDivisor();
         

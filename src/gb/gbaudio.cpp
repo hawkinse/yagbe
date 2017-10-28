@@ -22,26 +22,26 @@ void GBAudio::tick(long long hz){
     uint32_t skip = (CLOCK_GB * MHZ_TO_HZ) / m_player->getSampleRate() / 2;
     if ((rollover + hz) >= skip) {
 		
-		currentNote = tickSquare1(tempBuffer, hz);
+		currentNote = tickSquare1(hz);
 		m_player->mixNotes(&currentNote, &mixedNote, 1);
 
-		currentNote = tickSquare2(tempBuffer, hz);
+		currentNote = tickSquare2(hz);
 		m_player->mixNotes(&currentNote, &mixedNote, 1);
 
-		currentNote = tickWave(tempBuffer, hz);
+		currentNote = tickWave(hz);
 		m_player->mixNotes(&currentNote, &mixedNote, 1);
 
-		currentNote = tickNoise(tempBuffer, hz);
+		currentNote = tickNoise(hz);
 		m_player->mixNotes(&currentNote, &mixedNote, 1);
 		
-        m_player->addNote(mixedNote * 500, 1);
+        m_player->addNote(mixedNote * 500);
         rollover = rollover + hz - skip;
     } else {
 		
-		tickSquare1(tempBuffer, hz);
-		tickSquare2(tempBuffer, hz);
-		tickWave(tempBuffer, hz);
-		tickNoise(tempBuffer, hz);
+		tickSquare1(hz);
+		tickSquare2(hz);
+		tickWave(hz);
+		tickNoise(hz);
 		
         rollover += hz;
     }
@@ -50,7 +50,7 @@ void GBAudio::tick(long long hz){
     delete mixedBuffer;
 }
 
-uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
+uint16_t GBAudio::tickSquare1(long long hz){
     static uint8_t nextDutyIndex = 0;
     bool bChannelEnabled = true;
     
@@ -140,8 +140,6 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
                 nextDutyIndex = (nextDutyIndex + 1) % 8;
                 note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR11() >> 6) & 0x03][nextDutyIndex];
                 note *= m_square1Volume;
-                memset(buffer, note, m_square1FrequencyTimer);
-                buffer += m_square1FrequencyTimer;
 
                 hz -= m_square1FrequencyTimer;
                 m_square1FrequencyTimer = (2048 - m_square1Frequency) * 4;
@@ -159,7 +157,7 @@ uint16_t GBAudio::tickSquare1(uint8_t* buffer, long long hz){
     return note;
 }
 
-uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
+uint16_t GBAudio::tickSquare2(long long hz) {
     static uint8_t nextDutyIndex = 0;
     bool bChannelEnabled = true;
 
@@ -206,8 +204,6 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
                 nextDutyIndex = (nextDutyIndex + 1) % 8;
                 note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex];
                 note *= m_square2Volume;
-                memset(buffer, note, m_square2FrequencyTimer);
-                buffer += m_square2FrequencyTimer;
 
                 hz -= m_square2FrequencyTimer;
                 m_square2FrequencyTimer = (2048 - m_square2Frequency) * 4;
@@ -220,15 +216,11 @@ uint16_t GBAudio::tickSquare2(uint8_t* buffer, long long hz) {
         note = SQUARE_DUTY_WAVEFORM_TABLE[(getNR21() >> 6) & 0x03][nextDutyIndex];
         note *= m_square2Volume;
     }
-    
-    if (true || hz < 100000) {
-        memset(buffer, note, hz);
-    }
 
     return note;
 }
 
-uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
+uint16_t GBAudio::tickWave(long long hz){
     //Samples are stored as 4-bit values, two per byte.
     static bool bFirstByteSample = true;
     bool bChannelEnabled = true;
@@ -286,7 +278,7 @@ uint16_t GBAudio::tickWave(uint8_t* buffer, long long hz){
     return note;
 }
 
-uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
+uint16_t GBAudio::tickNoise(long long hz){
     static uint8_t nextDutyIndex = 0;
     bool bChannelEnabled = true;
 
@@ -333,9 +325,6 @@ uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
 
                 note = (~m_lfsr & 0x1) * m_noiseVolume;
 
-                memset(buffer, note, nextDutyIndex);
-                buffer += m_noiseFrequencyTimer;
-
                 hz -= m_noiseFrequencyTimer;
                 m_noiseFrequencyTimer = getNoiseDivisor() << ((getNR43() & 0xF0) >> 4);
             }
@@ -347,11 +336,7 @@ uint16_t GBAudio::tickNoise(uint8_t* buffer, long long hz){
         note = (~m_lfsr & 0x1) * m_noiseVolume;
 
     }
-
-    if (true || hz < 100000) {
-        memset(buffer, note, hz);
-    }
-
+    
     return note;
 }
 
