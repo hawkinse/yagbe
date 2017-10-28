@@ -46,8 +46,6 @@ SDLAudioPlayer::~SDLAudioPlayer() {
 
 void SDLAudioPlayer::addNote(uint16_t note) {
     //Attempt to rewrite this in terms of audio queues instead of audio callbacks. Might help with rendering?
-    //soundBuffer.push_back(note);
-    //soundBuffer[bufferSize++];
     if (bufferSize + 1 < FULL_BUFFER_SIZE) {
         soundBuffer[bufferSize++] = note;
     } else {
@@ -57,19 +55,10 @@ void SDLAudioPlayer::addNote(uint16_t note) {
     }
 }
 
+
 void SDLAudioPlayer::addNote(uint16_t note, long long hz) {
     addNote(note);
     return;
-    /*
-    if (hz + bufferSize < FULL_BUFFER_SIZE) {
-        memset(soundBuffer + bufferSize, note, hz);
-        bufferSize += hz;
-        //SDL_QueueAudio(1, &note, 1);
-    } else {
-        std::cout << "Audio Buffer overflow!" << std::endl;
-        memset(soundBuffer, 0, FULL_BUFFER_SIZE);
-        bufferSize = 0;
-    }*/
 }
 
 void SDLAudioPlayer::addNotes(uint16_t* notes, long long length) {
@@ -86,7 +75,7 @@ void SDLAudioPlayer::addNotes(uint16_t* notes, long long length) {
 
 void SDLAudioPlayer::mixNotes(uint16_t* src, uint16_t* dest, long long length) {
     //*2 is workaround for max volume seemingly expecting signed values
-    SDL_MixAudioFormat((uint8_t*)dest, (uint8_t*)src, AUDIO_U16SYS, length*2, SDL_MIX_MAXVOLUME);
+    SDL_MixAudioFormat((uint8_t*)dest, (uint8_t*)src, OUTPUT_AUDIO_FORMAT, length*2, SDL_MIX_MAXVOLUME);
 }
 
 void SDLAudioPlayer::play(long long hz) {

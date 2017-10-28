@@ -34,21 +34,15 @@ void sdlCallback(void* unused, uint8_t* buffer, int length);
 class SDLAudioPlayer : public IAudioPlayer {
     private:
         bool bUsingAudioQueue;
-        long long timeSinceLastUpdate;
-        //std::vector<Sound> soundBuffer;
-        //std::vector<uint8_t> soundBuffer;
         uint16_t* soundBuffer;
         uint32_t bufferSize = 0;
-        //void sdlCallback(void* unused, uint8_t* buffer, int lenth);
         
     public:
-        
         //UseAudioQueue specifies whether to use a callback or explicit audio queueing.
         SDLAudioPlayer(bool bUseAudioQueue = true);
         ~SDLAudioPlayer();
         
         //Adds new audio data from gameboy
-        //void update(Sound* buffer, int length);
         void addNote(uint16_t note);
         void addNote(uint16_t note, long long hz);
         void addNotes(uint16_t* notes, long long length);
