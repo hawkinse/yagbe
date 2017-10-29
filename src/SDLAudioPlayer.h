@@ -44,8 +44,6 @@ class SDLAudioPlayer : public IAudioPlayer {
         
         //Adds new audio data from gameboy
         void addNote(uint16_t note);
-        void addNote(uint16_t note, long long hz);
-        void addNotes(uint16_t* notes, long long length);
         void mixNotes(uint16_t* src, uint16_t* dest, long long length); //Ugly shim to make GB code not directly call sdl stuff
 
         //Called by SDL audio callback to fill buffer for output.

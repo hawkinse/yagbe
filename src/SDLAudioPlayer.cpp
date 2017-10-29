@@ -55,24 +55,6 @@ void SDLAudioPlayer::addNote(uint16_t note) {
     }
 }
 
-
-void SDLAudioPlayer::addNote(uint16_t note, long long hz) {
-    addNote(note);
-    return;
-}
-
-void SDLAudioPlayer::addNotes(uint16_t* notes, long long length) {
-    if (length + bufferSize < FULL_BUFFER_SIZE) {
-        memcpy(soundBuffer + bufferSize, notes, length * sizeof(uint8_t));
-        bufferSize += length;
-    } else {
-        std::cout << "Audio buffer overflow!" << std::endl;
-        memset(soundBuffer, 0, FULL_BUFFER_SIZE);
-        memcpy(soundBuffer + bufferSize, notes, length);
-        bufferSize = 0;
-    }
-}
-
 void SDLAudioPlayer::mixNotes(uint16_t* src, uint16_t* dest, long long length) {
     //*2 is workaround for max volume seemingly expecting signed values
     SDL_MixAudioFormat((uint8_t*)dest, (uint8_t*)src, OUTPUT_AUDIO_FORMAT, length*2, SDL_MIX_MAXVOLUME);
