@@ -84,7 +84,12 @@ class GBAudio{
         
         GBMem* m_gbmemory;
         IAudioPlayer* m_player;
-        
+    
+        bool m_square1Enabled = true;
+        bool m_square2Enabled = true;
+        bool m_waveEnabled = true;
+        bool m_noiseEnabled = true;
+    
         bool m_square1Triggered;
         bool m_square2Triggered;
         bool m_waveTriggered;
@@ -135,6 +140,11 @@ class GBAudio{
         void tick(long long hz);
         void setPlayer(IAudioPlayer* player);
 
+        void setSquare1Enabled(bool enabled);
+        void setSquare2Enabled(bool enabled);
+        void setWaveEnabled(bool enabled);
+        void setNoiseEnabled(bool enabled);
+    
         //Square Wave 1 Channel
         void setNR10(uint8_t val); //Sweep period, negate and shift
         uint8_t getNR10();

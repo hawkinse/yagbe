@@ -19,10 +19,18 @@ class SDLInputChecker : public IInputChecker {
     private:
       GBPad* m_pad;
       bool m_bExitPerformed;
+      bool m_bAudioSquare1Enabled = true;
+      bool m_bAudioSquare2Enabled = true;
+      bool m_bAudioWaveEnabled = true;
+      bool m_bAudioNoiseEnabled = true;
       float m_speedMultiplier;
     public:
       SDLInputChecker(GBPad* pad);
       void checkForInput();
       float getSpeedMultiplier();
       bool exitPerformed();
+      bool getAudioSquare1Enabled();
+      bool getAudioSquare2Enabled();
+      bool getAudioWaveEnabled();
+      bool getAudioNoiseEnabled();
 };

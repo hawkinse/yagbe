@@ -142,6 +142,12 @@ void mainLoop(){
             std::cout << "Speed multiplier is now: " << speedMultiplier << std::endl;
         }
         
+        //Update audio channel enable states
+        m_gbaudio->setSquare1Enabled(m_InputChecker->getAudioSquare1Enabled());
+        m_gbaudio->setSquare2Enabled(m_InputChecker->getAudioSquare2Enabled());
+        m_gbaudio->setWaveEnabled(m_InputChecker->getAudioWaveEnabled());
+        m_gbaudio->setNoiseEnabled(m_InputChecker->getAudioNoiseEnabled());
+        
         //Update gameboy framerate report
         long lastGBFrameCount = countedGBFrames;
         countedGBFrames = m_gblcd->getFrames();

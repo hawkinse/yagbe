@@ -56,6 +56,18 @@ void SDLInputChecker::checkForInput(){
                             m_speedMultiplier = (m_speedMultiplier + SPEED_MULTIPLIER_INCREMENT > MAX_SPEED_MULTIPLIER) ? MAX_SPEED_MULTIPLIER : m_speedMultiplier + SPEED_MULTIPLIER_INCREMENT;
                         }
                         break;
+                    case SDLK_1:
+                        m_bAudioSquare1Enabled = !m_bAudioSquare1Enabled;
+                        break;
+                    case SDLK_2:
+                        m_bAudioSquare2Enabled = !m_bAudioSquare2Enabled;
+                        break;
+                    case SDLK_3:
+                        m_bAudioWaveEnabled = !m_bAudioWaveEnabled;
+                        break;
+                    case SDLK_4:
+                        m_bAudioNoiseEnabled = !m_bAudioNoiseEnabled;
+                        break;
                 }
                 break;
             case SDL_KEYUP:
@@ -94,5 +106,21 @@ bool SDLInputChecker::exitPerformed(){
 
 float SDLInputChecker::getSpeedMultiplier(){
     return m_speedMultiplier;
+}
+
+bool SDLInputChecker::getAudioSquare1Enabled(){
+    return m_bAudioSquare1Enabled;
+}
+
+bool SDLInputChecker::getAudioSquare2Enabled(){
+    return m_bAudioSquare2Enabled;
+}
+
+bool SDLInputChecker::getAudioWaveEnabled(){
+    return m_bAudioWaveEnabled;
+}
+
+bool SDLInputChecker::getAudioNoiseEnabled(){
+    return m_bAudioNoiseEnabled;
 }
 

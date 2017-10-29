@@ -23,17 +23,25 @@ void GBAudio::tick(long long hz){
     if ((rollover + hz) >= skip) {
 		
 		currentNote = tickSquare1(hz);
-		m_player->mixNotes(&currentNote, &mixedNote, 1);
+        if(m_square1Enabled){
+            m_player->mixNotes(&currentNote, &mixedNote, 1);
+        }
 
 		currentNote = tickSquare2(hz);
-		m_player->mixNotes(&currentNote, &mixedNote, 1);
+        if(m_square2Enabled){
+            m_player->mixNotes(&currentNote, &mixedNote, 1);
+        }
 
 		currentNote = tickWave(hz);
-		m_player->mixNotes(&currentNote, &mixedNote, 1);
-
+        if(m_waveEnabled){
+            m_player->mixNotes(&currentNote, &mixedNote, 1);
+        }
+        
 		currentNote = tickNoise(hz);
-		m_player->mixNotes(&currentNote, &mixedNote, 1);
-		
+        if(m_noiseEnabled){
+            m_player->mixNotes(&currentNote, &mixedNote, 1);
+        }
+        
         m_player->addNote(mixedNote * 500);
         rollover = rollover + hz - skip;
     } else {
@@ -377,6 +385,22 @@ uint8_t GBAudio::getNoiseDivisor() {
         
 void GBAudio::setPlayer(IAudioPlayer* player){
     m_player = player;
+}
+
+void GBAudio::setSquare1Enabled(bool enabled){
+    m_square1Enabled = enabled;
+}
+
+void GBAudio::setSquare2Enabled(bool enabled){
+    m_square2Enabled = enabled;
+}
+
+void GBAudio::setWaveEnabled(bool enabled){
+    m_waveEnabled = enabled;
+}
+
+void GBAudio::setNoiseEnabled(bool enabled){
+    m_noiseEnabled = enabled;
 }
 
 //Square Wave 1 Channel
