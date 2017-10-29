@@ -1,6 +1,6 @@
 # Yagbe #
 
-Yagbe (Yet Another Gameboy Emulator) is an emulator for the original 1989 Nintendo Gameboy and 1998 Gameboy Color written in C++, with SDL 2 for input and rendering. It currently can run many games without sound (in the main branch) or link cable support. Games can be ran by themselves, or with a DMG/MGB boot rom for slightly higher compatibility.
+Yagbe (Yet Another Gameboy Emulator) is an emulator for the original 1989 Nintendo Gameboy and 1998 Gameboy Color written in C++, with SDL 2 for input, rendering and sound. It currently can run many games without link cable support. Games can be ran by themselves, or with a DMG/MGB boot rom for slightly higher compatibility.
 
 ### Arguments ###
 * **-r /path/to/rom.gb** Path to rom image.
