@@ -233,10 +233,21 @@ uint16_t GBAudio::tickWave(long long hz){
     static bool bFirstByteSample = true;
     bool bChannelEnabled = true;
 
+    //Execute length counter
+    if ((getNR34() & 0x40)) {
+        if (m_waveLengthCounter > 0) {
+            m_waveLengthCounter -= hz;
+        }
+        
+        if (m_waveLengthCounter <= 0) {
+            bChannelEnabled = false;
+        }
+    }
+    
     if (bChannelEnabled && !(getNR52() >> 7)) {
         bChannelEnabled = false;
     }
-
+    
     uint8_t note = 0;
     //Need to check NR30 for if DAC is enabled
     if (bChannelEnabled && getNR30()) {
@@ -603,7 +614,7 @@ uint8_t GBAudio::getNR30(){
 //Length load
 void GBAudio::setNR31(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR31, val);
-	m_waveLengthCounter = 1 * 512 * 256;
+    m_waveLengthCounter = 512 * 256 * val;
 }
 
 uint8_t GBAudio::getNR31(){
@@ -620,7 +631,6 @@ uint8_t GBAudio::getNR32(){
     return m_gbmemory->direct_read(ADDRESS_NR32);
 }
 
-uint8_t m_waveFrequencyNextLow;
 //Frequency low byte
 void GBAudio::setNR33(uint8_t val){
     m_gbmemory->direct_write(ADDRESS_NR33, val);
@@ -642,35 +652,12 @@ void GBAudio::setNR34(uint8_t val){
 	
 	//Check if length counter is 0, set to length load if so.
 	if (m_waveLengthCounter == 0) {
-		m_waveLengthCounter = 1 * 512 * 256;
+		//m_waveLengthCounter = 1 * 512 * 256;
 	}
 
     //Check if trigger is being set
     if (val & CHANNEL_TRIGGER) {
         m_waveTriggered = true;
-        
-        //TODO - See if things still work when this is commented out before commit
-        /*
-        //Enable channel, see length counter documentation
-
-        //Check if length counter is 0, set to length load if so.
-        if (m_waveLengthCounter == 0) {
-            m_waveLengthCounter = 256;
-        }
-
-        //Load frequency timer with period
-        //m_waveFrequency = (((uint16_t)val & 0x0007) << 9) | (m_waveFrequency & 0x00FF);
-		m_waveFrequency = (((uint16_t)val & 0x0007) << 8) | ((uint16_t)getNR33() & 0x00FF);
-        m_waveFrequencyTimer = (2048 - m_waveFrequency) * 2;
-
-
-        //Check if channel DAC is off and disable self again if so.
-        if (!getNR30()) {
-            m_waveTriggered = false;
-            val &= ~CHANNEL_TRIGGER;
-            m_waveLengthCounter = 0;
-        }
-        */
         
         m_waveSampleByteIndex = 0;
     }
