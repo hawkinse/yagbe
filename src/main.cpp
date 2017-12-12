@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <iostream>
+#include <thread>
 //SDL headers are not in an SDL2 directory on Windows
 #if defined(_WIN32) || defined(__APPLE__)
 #include <SDL.h>
@@ -75,13 +76,14 @@ bool init_sdl(float windowScale = 1.0f){
     bool bSuccess = true;
     
     //Initialize with VSync so we don't waste processor cycles needlessly and burn battery life
-    int RenderFlags = SDL_RENDERER_ACCELERATED/* | SDL_RENDERER_PRESENTVSYNC*/;
+    int RenderFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
     
+    //Another call will be made to SDL_Init for audio
     if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) >= 0){
-	//Generate window title
-	char* windowTitle = new char[24];
-    memcpy(windowTitle, "Yagbe: ", 7);
-	memcpy(windowTitle + 7, m_gbcart->getCartridgeTitle().c_str(), 16);
+        //Generate window title
+        char* windowTitle = new char[24];
+        memcpy(windowTitle, "Yagbe: ", 7);
+        memcpy(windowTitle + 7, m_gbcart->getCartridgeTitle().c_str(), 16);
         
         //Create main window
         m_SDLWindow = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, FRAMEBUFFER_WIDTH * windowScale, FRAMEBUFFER_HEIGHT * windowScale, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
@@ -96,9 +98,6 @@ bool init_sdl(float windowScale = 1.0f){
             std::cout << "SDL could not create the main window. SDL Error: " << SDL_GetError() << std::endl;
             bSuccess = false;
         }
-        
-        
-        
     } else {
         std::cout << "SDL could not initialize. SDL Error: " << SDL_GetError() << std::endl;
         bSuccess = false;
@@ -156,7 +155,11 @@ void mainLoop(){
         m_gbcpu->tick((deltaTime > 1.0f) ? 0 : deltaTime * speedMultiplier);
         //m_gbcpu->tick(deltaTime);
         m_MainBufferRenderer->render();
-        m_AudioPlayer->play(deltaTime);
+        
+        //Only play audio if not using threaded audio
+        if(!USE_THREADED_AUDIO){
+            m_AudioPlayer->play(deltaTime);
+        }
         
         //Update frame counting
         countedSDLFrames++;
@@ -201,10 +204,18 @@ bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, fl
 	return bSuccess;
 }
 
+void audioThreadLoop(){
+    while(true){
+        m_AudioPlayer->play(0);
+    }
+}
+
 int main(int argc, char** argv){
   char* bootRomPath = NULL;
   char* cartRomPath = NULL;
   float windowScale = 1.0f;
+  thread* audioThread = nullptr;
+    
   Platform systemType = Platform::PLATFORM_AUTO;
 
   bool bArgsValid = parseArgs(argc, argv, bootRomPath, cartRomPath, windowScale, systemType);
@@ -235,10 +246,21 @@ int main(int argc, char** argv){
   m_InputChecker = new SDLInputChecker(m_gbpad);
   m_gbcpu->setInputChecker(m_InputChecker);
   
+  //Start audio thread if enabled
+  if(USE_THREADED_AUDIO){
+      audioThread = new thread(audioThreadLoop);
+      
+      //Thread needs to be detached or main thread won't continue execution.
+      audioThread->detach();
+  }
+    
   //Emulation main loop
   mainLoop();
   
-  //Clean up before exit  
+  //Clean up before exit
+  if(USE_THREADED_AUDIO && (audioThread != nullptr)){
+      delete audioThread;
+  }
   destroy_gb();
   destroy_sdl();
   

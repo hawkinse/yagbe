@@ -13,3 +13,4 @@
 #define SERIAL_ENABLED false
 #define BLAARG_TEST_OUTPUT false
 #define ENABLE_BOOTROM true
+#define USE_THREADED_AUDIO true
