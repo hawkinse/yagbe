@@ -211,11 +211,6 @@ void GBLCD::performVBlank(){
     
     swapBuffers();
     
-    //Update background map display
-    if(m_displayRenderer){
-        m_displayRenderer->update(getCompleteFrame(), FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
-    }
-    
     //Fires event for main vblank interrupt
     m_gbmemory->write(ADDRESS_IF, m_gbmemory->direct_read(ADDRESS_IF) | INTERRUPT_FLAG_VBLANK);
     
@@ -623,11 +618,6 @@ void GBLCD::setLCDC(uint8_t val){
                 for(uint8_t pixelY = 0; pixelY < FRAMEBUFFER_HEIGHT; pixelY++){
                     buffer[pixelX][pixelY] = COLOR_WHITE;
                 }
-            }
-            
-            //Push blank screen to renderer
-            if(m_displayRenderer){
-                m_displayRenderer->update(buffer, FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
             }
         }
     } else {

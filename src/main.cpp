@@ -153,7 +153,11 @@ void mainLoop(){
         
         //tick CPU, only if delta time is under a second.
         m_gbcpu->tick((deltaTime > 1.0f) ? 0 : deltaTime * speedMultiplier);
-        //m_gbcpu->tick(deltaTime);
+        
+        //Update frame data in the renderer
+        m_MainBufferRenderer->update(m_gblcd->getCompleteFrame(), FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
+        
+        //Render frame
         m_MainBufferRenderer->render();
         
         //Only play audio if not using threaded audio
