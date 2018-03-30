@@ -517,14 +517,9 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 			vramBank = (spriteFlags & SPRITE_ATTRIBUTE_VRAM_BANK) > 0;
 			gbcPaletteNumber = spriteFlags & SPRITE_ATTRIBUTE_GBC_PALETTE;
 		}
-
-        //Test
-        gbcPaletteNumber = spriteFlags & SPRITE_ATTRIBUTE_GBC_PALETTE;
         
         int realXPos = spriteXPos - SPRITE_X_OFFSET;
         int realYPos = spriteYPos - SPRITE_Y_OFFSET;
-        
-		//TODO - once GBC palettes are added, add support for sprites.
         uint8_t palette = (spriteFlags & SPRITE_ATTRIBUTE_PALLETE) ? getSpritePalette1() : getSpritePalette0();
         
         //Check if sprite is actually on screen
