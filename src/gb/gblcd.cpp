@@ -300,6 +300,23 @@ RGBColor GBLCD::getColorGBC(uint8_t* paletteBuffer, uint8_t paletteIndex, uint8_
 	return toReturn;
 }
 
+//Gets the default palette index for a given B&W RGB color
+int GBLCD::getDefaultIndexFromColor(RGBColor color){
+    int toReturn = 0;
+    
+    if(color.equals(COLOR_WHITE)){
+        toReturn = PALETTE_BW_WHITE;
+    } else if (color.equals(COLOR_LIGHTGRAY)){
+        toReturn = PALETTE_BW_LIGHTGRAY;
+    } else if (color.equals(COLOR_DARKGRAY)){
+        toReturn = PALETTE_BW_DARKGRAY;
+    } else if (color.equals(COLOR_BLACK)){
+        toReturn = PALETTE_BW_BLACK;
+    }
+    
+    return toReturn;
+}
+
 void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){    
     int bgPixelY = (getLY() + getScrollY()) % (BACKGROUND_MAP_HEIGHT * TILE_HEIGHT);
     
@@ -368,6 +385,12 @@ void GBLCD::updateBackgroundLine(RGBColor** frameBuffer){
 			else {
 				//DMG Color
 				 pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
+                
+                //GBC Backwards Compatibility Color
+                if(m_gbmemory->getGBCBackwardsCompatMode()){
+                    int colorIndex = getDefaultIndexFromColor(pixelColor);
+                    pixelColor = getColorGBC(m_gbcBGPalettes, 0, colorIndex);
+                }
 			}
 
 			frameBuffer[bgPixelX][getLY()] = pixelColor;
@@ -447,6 +470,12 @@ void GBLCD::updateWindowLine(RGBColor** frameBuffer){
                             
 						} else {
 							pixelColor = getColor(getBGPalette(), m_TempTile[tileX]);
+                            
+                            //GBC Backwards Compatibility Color
+                            if(m_gbmemory->getGBCBackwardsCompatMode()){
+                                int colorIndex = getDefaultIndexFromColor(pixelColor);
+                                pixelColor = getColorGBC(m_gbcBGPalettes, 0, colorIndex);
+                            }
 						}
 						frameBuffer[(bgPixelX + tileX)][getLY()] = pixelColor;
                     } else {
@@ -489,6 +518,9 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 			gbcPaletteNumber = spriteFlags & SPRITE_ATTRIBUTE_GBC_PALETTE;
 		}
 
+        //Test
+        gbcPaletteNumber = spriteFlags & SPRITE_ATTRIBUTE_GBC_PALETTE;
+        
         int realXPos = spriteXPos - SPRITE_X_OFFSET;
         int realYPos = spriteYPos - SPRITE_Y_OFFSET;
         
@@ -501,7 +533,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
                 int tileYLine = (getLY() - realYPos) % (TILE_HEIGHT * 2);
                 int tileYSpriteLine = (getLY() - realYPos) % TILE_HEIGHT;
                 
-                if(bDoubleHeight && ((tileYLine > 7 && !bYFlip) || (tileYLine <= 7 & bYFlip))){
+                if(bDoubleHeight && ((tileYLine > 7 && !bYFlip) || (tileYLine <= 7 && bYFlip))){
                     spriteTileNum++;
                 } 
                 
@@ -519,6 +551,15 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
 							pixel = getColorGBC(m_gbcOAMPalettes, gbcPaletteNumber, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
 						} else {
 							pixel = getColor(palette, m_TempTile[(bXFlip ? (7 - tileX) : tileX)]);
+                            
+                            //GBC Backwards Compatibility Color
+                            if(m_gbmemory->getGBCBackwardsCompatMode()){
+                                bool originalTransparentcy = pixel.transparent;
+                                int colorIndex = getDefaultIndexFromColor(pixel);
+                                
+                                pixel = getColorGBC(m_gbcOAMPalettes, 0, colorIndex);
+                                pixel.transparent = originalTransparentcy;
+                            }
 						}
                          
                         if(!pixel.transparent && !m_gbcBGOverridesOAM[renderPosX]){

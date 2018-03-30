@@ -127,6 +127,7 @@ enum Platform {
 	PLATFORM_DMG = 0,
 	PLATFORM_SGB = 1,
 	PLATFORM_GBC = 2,
+    PLATFORM_GBC_BC = 3, //DMG games in GBC Backwards Compatibilty mode. Affects color palettes.
 	PLATFORM_AUTO
 };
 
@@ -195,6 +196,9 @@ class GBMem{
 	//Get whether or not we are in GBC mode
 	bool getGBCMode();
 
+    //Get whether or not we are in GBC Backwards Compatibility mode
+    bool getGBCBackwardsCompatMode();
+    
 	//Gets the current video ram bank
 	uint8_t getVRamBank();
 

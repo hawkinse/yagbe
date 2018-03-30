@@ -132,6 +132,12 @@ void GBMem::write(uint16_t address, uint8_t value) {
 		//Disable bootrom access
 		if (value & 0x1) {
 			m_gbcart->setBootRomEnabled(false);
+            
+            //Switch platform to backwards compatibility mode
+            if(!m_gbcart->cartSupportsGBC() && m_systemType == PLATFORM_GBC){
+                m_systemType = PLATFORM_GBC_BC;
+                std::cout << "Switched to GBC Backwards Compatility platform" << std::endl;
+            }
 		}
 	} else if (address == ADDRESS_SVBK) {
 		//Only allow ram bank switching in GBC mode
@@ -452,9 +458,14 @@ float GBMem::getClockMultiplier(){
     return m_clockMultiplier;
 }
 
+//Get whether or not we are in GBC Backwards Compatibility mode
+bool GBMem::getGBCBackwardsCompatMode(){
+    return m_systemType == Platform::PLATFORM_GBC_BC;
+}
+
 //Get whether or not we are in GBC mode
 bool GBMem::getGBCMode() {
-	return (m_systemType == Platform::PLATFORM_GBC);
+    return m_systemType == Platform::PLATFORM_GBC;
 }
 
 //Gets the current video ram bank

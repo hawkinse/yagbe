@@ -176,7 +176,10 @@ class GBLCD{
  
 		//Gets GBC color from the given color index within the given palette index of the palette buffer.
 		RGBColor getColorGBC(uint8_t* paletteBuffer, uint8_t paletteIndex, uint8_t colorIndex);
-        
+    
+        //Gets the default palette index for a given B&W RGB color
+        int getDefaultIndexFromColor(RGBColor color);
+    
         //Updates the line indicated by LY and ScrollY in the background buffer
         void updateBackgroundLine(RGBColor** frameBuffer);
         
