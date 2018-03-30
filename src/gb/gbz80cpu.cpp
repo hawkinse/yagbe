@@ -23,7 +23,6 @@ void GBZ80::init(){
     //Set clock speed
     m_Clock = CLOCK_GB;
     
-    
     m_bInterruptsEnabled = false;
     m_bInterruptsEnabledNext = false;
     m_bHalt = false;
@@ -98,7 +97,7 @@ void GBZ80::tick(float deltaTime){
     } else {
         //Set cycles based on the given deltaTime and existing rollover
 		//If in double speed mode, double the deltaTime to double the cycles. we can run.
-        cycles = (deltaTime * m_Clock * MHZ_TO_HZ) + timeRollover;
+        cycles = (deltaTime * m_Clock * MHZ_TO_HZ * m_gbmemory->getClockMultiplier()) + timeRollover;
     }
     
     //Hacky workaround to broken SDL when not rendering due to halted CPU

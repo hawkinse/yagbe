@@ -10,8 +10,8 @@
 #include "gb/gbpad.h"
 
 #define MAX_SPEED_MULTIPLIER 4.0
-#define MIN_SPEED_MULTIPLIER 1.0
-#define SPEED_MULTIPLIER_INCREMENT 0.25
+#define MIN_SPEED_MULTIPLIER 0.25
+#define SPEED_MULTIPLIER_INCREMENT 0.01
 
 using namespace std;
 

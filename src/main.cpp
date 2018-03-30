@@ -139,6 +139,7 @@ void mainLoop(){
         if(speedMultiplier != m_InputChecker->getSpeedMultiplier()){
             speedMultiplier = m_InputChecker->getSpeedMultiplier();
             std::cout << "Speed multiplier is now: " << speedMultiplier << std::endl;
+            m_gbmem->setClockMultiplier(speedMultiplier);
         }
         
         //Update audio channel enable states
@@ -152,7 +153,7 @@ void mainLoop(){
         countedGBFrames = m_gblcd->getFrames();
         
         //tick CPU, only if delta time is under a second.
-        m_gbcpu->tick((deltaTime > 1.0f) ? 0 : deltaTime * speedMultiplier);
+        m_gbcpu->tick((deltaTime > 1.0f) ? 0 : deltaTime);
         
         //Update frame data in the renderer
         m_MainBufferRenderer->update(m_gblcd->getCompleteFrame(), FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
@@ -169,7 +170,6 @@ void mainLoop(){
         countedSDLFrames++;
         deltaTime = (SDL_GetTicks() / 1000.0f) - totalTime;
         totalTime = (SDL_GetTicks() / 1000.0f);
-        
     }
 }
 
@@ -209,8 +209,14 @@ bool parseArgs(int argc, char** argv, char* &bootRomPath, char* &cartRomPath, fl
 }
 
 void audioThreadLoop(){
+    //Playback freqency is in Hz, equivalent to seconds for this purpose.
+    std::chrono::nanoseconds playback_delay (1000000000 / PLAYBACK_FREQUENCY);
+    
     while(true){
         m_AudioPlayer->play(0);
+        
+        //Sleep audio thread to save on CPU usage
+        std::this_thread::sleep_for(playback_delay);
     }
 }
 

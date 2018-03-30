@@ -22,6 +22,9 @@ GBMem::GBMem(Platform systemType){
 	m_systemType = systemType;
 	m_bDoubleClockSpeed = false;
 	m_bPrepareForSpeedSwitch = false;
+    
+    //Set default clock multiplier
+    m_clockMultiplier = 1.0f; 
 }
 
 GBMem::~GBMem(){
@@ -437,6 +440,16 @@ void GBMem::setPad(GBPad* pad){
 
 void GBMem::setSerial(GBSerial* serial){
     m_gbserial = serial;
+}
+
+//Sets the clock speed multiplier
+void GBMem::setClockMultiplier(float multiplier){
+    m_clockMultiplier = multiplier;
+}
+
+//Gets the clock speed multiplier
+float GBMem::getClockMultiplier(){
+    return m_clockMultiplier;
 }
 
 //Get whether or not we are in GBC mode

@@ -158,6 +158,9 @@ class GBMem{
     uint8_t *m_wRamBanks; //Stores ram banks 1 through 7. 4KB each, 28kb total.
 	uint8_t *m_vRamBanks; //Stores both 8kb VRam banks.
 
+    //Clock speed multiplier. In GBMem so other timing sensitive code can reach it
+    float m_clockMultiplier;
+    
     void increment_RegisterDIV(long long hz);
     void increment_RegisterTIMA(long long hz);
     
@@ -182,6 +185,12 @@ class GBMem{
     void setAudio(GBAudio* audio);
     void setPad(GBPad* pad);
     void setSerial(GBSerial* serial);
+    
+    //Sets the clock speed multiplier
+    void setClockMultiplier(float multiplier);
+    
+    //Gets the clock speed multiplier
+    float getClockMultiplier();
     
 	//Get whether or not we are in GBC mode
 	bool getGBCMode();

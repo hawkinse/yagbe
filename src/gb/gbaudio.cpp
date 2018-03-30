@@ -19,7 +19,7 @@ void GBAudio::tick(long long hz){
     uint16_t currentNote = 0;
     uint16_t mixedNote = 0;
 	
-    uint32_t skip = (CLOCK_GB * MHZ_TO_HZ) / m_player->getSampleRate() / 2;
+    uint32_t skip = (CLOCK_GB * MHZ_TO_HZ * m_gbmemory->getClockMultiplier()) / m_player->getSampleRate() / 2;
     if ((rollover + hz) >= skip) {
 		
 		currentNote = tickSquare1(hz);
