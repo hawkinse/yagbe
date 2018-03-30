@@ -130,7 +130,7 @@ void GBMem::write(uint16_t address, uint8_t value) {
 	}
 	else if (address == ADDRESS_BOOTROM) {
 		//Disable bootrom access
-		if (value == 0x01) {
+		if (value & 0x1) {
 			m_gbcart->setBootRomEnabled(false);
 		}
 	} else if (address == ADDRESS_SVBK) {

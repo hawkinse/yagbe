@@ -19,13 +19,14 @@ GBCart::GBCart(char* filename, char* bootrom){
     m_bCartRamEnabled = false;
     m_bMBC1RomRamSelect = false;
 
-    uint8_t m_rtcSeconds = 0;
-    uint8_t m_rtcMinutes = 0;
-    uint8_t m_rtcHours = 0;
-    uint8_t m_rtcLowerDayCounter = 0;
-    uint8_t m_rtcFlags = 0;
-    bool m_bRTCLatched = false;
-
+    m_rtcSeconds = 0;
+    m_rtcMinutes = 0;
+    m_rtcHours = 0;
+    m_rtcLowerDayCounter = 0;
+    m_rtcFlags = 0;
+    m_bRTCLatched = false;
+    m_bBootRomLoaded = false;
+    
     if(bootrom != NULL){
         loadBootRom(bootrom);
     }
@@ -106,6 +107,15 @@ void GBCart::loadBootRom(char* filename){
         
         bootRom.close();
         
+        if(size == 256){
+            std::cout << "Boot rom is DMG/SGB/MGB" << std::endl;
+            m_bBootRomIsGBC = false;
+        } else {
+            std::cout << "Boot rom is GBC/AGB" << std::endl;
+            m_bBootRomIsGBC = true;
+        }
+        
+        m_bBootRomLoaded = true;
         m_bBootRomEnabled = true;
     } else {
         if(CONSOLE_OUTPUT_ENABLED) std::cout << "Failed to load boot rom" << std::endl;
@@ -476,7 +486,7 @@ void GBCart::write_MBC(uint16_t address, uint8_t val){
     
 uint8_t GBCart::read(uint16_t address){
     uint8_t toReturn = 0xFF;
-    if((address < 0x100) && m_bBootRomEnabled){
+    if(m_bBootRomEnabled && ((address < 0x100) || (m_bBootRomIsGBC && (address >= 0x200) && (address <= 0x8FF)))){
         toReturn = m_bootRom[address];
     } else {
         //Addresses up to the end of Bank 0 always return bank 0, regardless of cart type.
@@ -502,7 +512,12 @@ void GBCart::save(){
         saveCartRam();
     }
 }
-   
+
+//Gets whether or not a boot rom has been loaded
+bool GBCart::getBootRomLoaded(){
+    return m_bBootRomLoaded;
+}
+
 //Sets whether the first 0xFF bytes are read from the boot rom or the cartridge
 void GBCart::setBootRomEnabled(bool enabled){
     m_bBootRomEnabled = enabled;

@@ -75,7 +75,9 @@ class GBCart{
     bool m_bHasBattery;
     bool m_bHasRumble;
     
+    bool m_bBootRomLoaded;
     bool m_bBootRomEnabled;
+    bool m_bBootRomIsGBC;
     
     uint16_t m_cartRomBank;
     uint8_t m_cartRamBank;
@@ -111,6 +113,7 @@ class GBCart{
     void write_MBC(uint16_t address, uint8_t val);
     
   public:
+    
     enum ROMType{
         ROM_ONLY = 0x00,
         ROM_MBC1 = 0x01,
@@ -179,6 +182,9 @@ class GBCart{
     
     //Saves cart ram, if cart has a battery backup
     void save();
+    
+    //Gets whether or not a boot rom has been loaded
+    bool getBootRomLoaded();
     
     //Sets whether the first 0xFF bytes are read from the boot rom instead of cartridge
     void setBootRomEnabled(bool enabled);
