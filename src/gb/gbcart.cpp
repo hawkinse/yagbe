@@ -518,6 +518,11 @@ bool GBCart::getBootRomLoaded(){
     return m_bBootRomLoaded;
 }
 
+//Gets whether or not this bootrom supports GBC
+bool GBCart::getBootRomIsGBC(){
+    return m_bBootRomIsGBC;
+}
+
 //Sets whether the first 0xFF bytes are read from the boot rom or the cartridge
 void GBCart::setBootRomEnabled(bool enabled){
     m_bBootRomEnabled = enabled;

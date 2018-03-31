@@ -186,6 +186,9 @@ class GBCart{
     //Gets whether or not a boot rom has been loaded
     bool getBootRomLoaded();
     
+    //Gets whether or not this bootrom supports GBC
+    bool getBootRomIsGBC();
+    
     //Sets whether the first 0xFF bytes are read from the boot rom instead of cartridge
     void setBootRomEnabled(bool enabled);
     

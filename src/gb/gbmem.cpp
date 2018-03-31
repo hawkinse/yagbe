@@ -417,17 +417,27 @@ uint8_t GBMem::direct_vram_read(uint16_t index, uint8_t vramBank) {
 void GBMem::loadCart(GBCart* cart) {
 	m_gbcart = cart;
 
-	//If platform is set to auto, set based on cart type
+	//If platform is set to auto, need to determine actual system type
 	if (m_systemType == Platform::PLATFORM_AUTO) {
-		if (m_gbcart->cartSupportsGBC()) {
-			m_systemType = Platform::PLATFORM_GBC;
-		} else {
-			if (m_gbcart->cartSupportsSGB()) {
-				m_systemType = Platform::PLATFORM_SGB;
-			} else {
-				m_systemType = Platform::PLATFORM_DMG;
-			}
-		}
+        //If a boot rom is loaded, the boot rom type determines system type
+        if(m_gbcart->getBootRomLoaded()){
+            if(m_gbcart->getBootRomIsGBC()){
+                m_systemType = Platform::PLATFORM_GBC;
+            } else {
+                m_systemType = Platform::PLATFORM_DMG;
+            }
+        } else {
+            //If a boot rom is not loaded, the game rom determines system type
+            if (m_gbcart->cartSupportsGBC()) {
+                m_systemType = Platform::PLATFORM_GBC;
+            } else {
+                if (m_gbcart->cartSupportsSGB()) {
+                    m_systemType = Platform::PLATFORM_SGB;
+                } else {
+                    m_systemType = Platform::PLATFORM_DMG;
+                }
+            }
+        }
 	}
 
 }
