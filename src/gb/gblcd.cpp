@@ -505,7 +505,7 @@ void GBLCD::updateLineSprites(RGBColor** frameBuffer){
     bool bDoubleHeight = (getLCDC() & LCDC_SPRITE_SIZE);
     
     //Loop through all sprite attributes
-    for(uint16_t spriteAttributeAddress = OAM_START; spriteAttributeAddress <= OAM_END; spriteAttributeAddress += 4){
+    for(uint16_t spriteAttributeAddress = OAM_END - 3; spriteAttributeAddress >= OAM_START; spriteAttributeAddress -= 4){
         //Get sprite attributes
         spriteYPos = m_gbmemory->direct_read(spriteAttributeAddress);
         spriteXPos = m_gbmemory->direct_read(spriteAttributeAddress + 1);
