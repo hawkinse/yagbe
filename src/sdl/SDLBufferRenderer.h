@@ -6,7 +6,7 @@
 #else
 #include <SDL2/SDL.h>
 #endif
-#include "IRenderer.h"
+#include "../IRenderer.h"
 
 using namespace std;
 

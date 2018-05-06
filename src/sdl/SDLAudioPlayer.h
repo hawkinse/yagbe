@@ -10,8 +10,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_audio.h>
 #endif
-#include "IAudioPlayer.h"
-#include "gb/gbaudio.h"
+#include "../IAudioPlayer.h"
+#include "../gb/gbaudio.h"
 
 #define PLAYBACK_FREQUENCY 41100
 #define BUFFER_SAMPLES 2048

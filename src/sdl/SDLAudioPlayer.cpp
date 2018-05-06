@@ -8,7 +8,7 @@
 #include <math.h>
 #include <set>
 #include "SDLAudioPlayer.h"
-#include "gb/gbaudio.h"
+#include "../gb/gbaudio.h"
 
 SDLAudioPlayer::SDLAudioPlayer(bool bUseAudioQueue) {
     SDL_AudioSpec requestedSpec;

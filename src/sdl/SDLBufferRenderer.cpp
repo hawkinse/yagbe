@@ -1,5 +1,5 @@
 #include "SDLBufferRenderer.h"
-#include "gb/gblcd.h"
+#include "../gb/gblcd.h"
 
 SDLBufferRenderer::SDLBufferRenderer(SDL_Renderer* renderer){
     m_Renderer = renderer;

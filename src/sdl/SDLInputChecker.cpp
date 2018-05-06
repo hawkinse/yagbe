@@ -4,7 +4,7 @@
 #include <SDL2/SDL.h>
 #endif
 #include "SDLInputChecker.h"
-#include "gb/gbpad.h"
+#include "../gb/gbpad.h"
 
 SDLInputChecker::SDLInputChecker(GBPad* pad){
     m_pad = pad;

@@ -6,8 +6,8 @@
 #else
 #include <SDL2/SDL.h>
 #endif
-#include "IInputChecker.h"
-#include "gb/gbpad.h"
+#include "../IInputChecker.h"
+#include "../gb/gbpad.h"
 
 #define MAX_SPEED_MULTIPLIER 4.0
 #define MIN_SPEED_MULTIPLIER 0.25

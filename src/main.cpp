@@ -15,9 +15,9 @@
 #include "gb/gblcd.h"
 #include "gb/gbaudio.h"
 #include "gb/gbserial.h"
-#include "SDLBufferRenderer.h"
-#include "SDLAudioPlayer.h"
-#include "SDLInputChecker.h"
+#include "sdl/SDLBufferRenderer.h"
+#include "sdl/SDLAudioPlayer.h"
+#include "sdl/SDLInputChecker.h"
 
 using namespace std;
 
