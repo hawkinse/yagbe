@@ -18,3 +18,4 @@ yagbe.dir
 *.sln
 Debug/*
 x64/*
+yagbe_autogen
